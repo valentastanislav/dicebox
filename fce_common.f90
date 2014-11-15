@@ -1,5 +1,5 @@
 !TODO gilbert cameron and spin distribution of initial states email jutta escher
-
+!allocate some variables to ensure stability in most general case
 module spolecne
 use lokalni_fce
 integer::                             nbin,LMODE,LDENP,NLD,NGIGE,NGIGM,NGIGE2,NOPTE1,NOPTM1,NOPTE2,max_decays,numlev,NOPTDE
