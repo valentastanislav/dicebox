@@ -1,4 +1,3 @@
-!hskahskhak
 !TODO gilbert cameron and spin distribution of initial states email jutta escher
 !gamma_multiplicita make 
 
