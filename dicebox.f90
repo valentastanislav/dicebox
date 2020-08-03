@@ -9,10 +9,11 @@ implicit none
 INTEGER,PARAMETER::    MAXJC  = 49
 !PRIVATE
 CHARACTER(80)::                       NAME
-LOGICAL::        ponverze,sidlev,ponverk
+LOGICAL::        log_check,sidlev
+INTEGER::        IC_type !0 = gamma, 1 = K-shell, 2 = higher-shell, 3 = pair
 INTEGER::        IR0,IR1,IR2,IR3,IR4,ITID,IFLAG,NTOTAL,IREGI,IBIN,ILIN
 INTEGER::        ilinc,ip,is,il,i,K,IEV,STEPS,IPFI,IBFI,ILFI,IPIN,ISUB
-REAL::           U,dummy,SPFI,DMIX2,SIGN,SPIN
+REAL::           U,dummy,SPFI,DMIX2,SIGN,SPIN, eg,EG_MAX,EG_STEP
 real,dimension(:,:),allocatable::     sall
 integer,dimension(:,:,:),allocatable::LEVCON
 integer,dimension(:),allocatable::    IRCONc,IRCON
@@ -26,7 +27,7 @@ real, dimension(0:2,0:20,-2:2,0:1)::  STDIS
 real, dimension(0:2,-2:2,0:1)::       GADIS
 real, dimension(0:2)::                TOTDIS
 
-real,dimension(:,:),allocatable::    ELQQ,SPQQ,DMQQ,GTOTQQ
+real,dimension(:,:),allocatable::    ELQQ,SPQQ,DMQQ,WIQQ
 integer,dimension(:,:),allocatable:: IPQQ,ICQQ
 integer,dimension(:),allocatable::   NR_STEPS
 
@@ -47,12 +48,12 @@ real::                            RADWID,RADWDI
 
 !$OMP PARALLEL DEFAULT(PRIVATE) &
 !$OMP SHARED(lopopgs,kpopgs,NVLAKEN,NDEAD,NISOM,KONTROLMATRIX,RADW,POPTLEV,POPSLEV,&
-!$OMP ISWWR,ISWBN,ISWEL,ISWSP,ISWPA,ISWIC,ISWMX,ISWGT,&
+!$OMP ISWWR,ISWBN,ISWEL,ISWSP,ISWPA,ISWIC,ISWMX,ISWGT,ISWLS,&
 !$OMP NOPTFL,NOPTE1,NOPTM1,NOPTE2,NOPTDE,LMODE,LDENP,&
 !$OMP NREAL, NEVENTS, NUMLEV, NSUB,&
-!$OMP NGIGE,ER,W0,SIG,NGIGM,ERM,WM0,SIGM,ETR,NGIGE2,ERE,WE0,SIGE,&
-!$OMP DEG,DMG,QEL,FERMC,EK0,EGZERO,&
-!$OMP DIPELO,DIPEHI,DIPSUP,DIPSLP,DIPZER,&
+!$OMP NGIGE,ER,W0,SIG,NGIGM,ERM,WM0,SIGM,NGIGE2,ERE,WE0,SIGE,&
+!$OMP DEG,DMG,QEL,FERMC,TCONST,EK0,EGZERO,&
+!$OMP PAR_E1,PAR_M1,DIPSLP,DIPZER,&
 !$OMP EZERO,DEL,TEMPER,ASHELL,AMASS,ZNUM,PAIRING,&
 !$OMP ASHELL09,DEL09,TEMPER09,EZERO09,PAIRING09,&
 !$OMP DENPPC,DENPA0,DENPA1,DENPA2,&
@@ -61,12 +62,13 @@ real::                            RADWID,RADWDI
 !$OMP XRAYK,XRAYL,NENT,ELENT,CONVT,NENK,ELENK,CONVK,&
 !$OMP ECRIT,EALL,max_decays,max_spin,&
 !$OMP ndis,endis,dekod,denum,delev,despin,deparity,deltx,&
-!$OMP sal,errsal,alpha,ponv,ponvk,elowlev,elowsp,ilowip,isbspin,ityp,nddd,&
+!$OMP sal,errsal,alpha,p_conv,p_conv_K,p_conv_IPF,elowlev,elowsp,ilowip,isbspin,ityp,nddd,&
 !$OMP TABENLD,TABLD,NLD,&
+!$OMP TABENPSF,TABPSF,NPSF,&
 !$OMP NBIN,DELTA,gamma_multiplicita,N_MSC_FS,MIN_MULTIPLICITA,MAX_MULTIPLICITA,MSC_FS,BIN_WIDTH,&
 !$OMP intermediate2,intermediate3,XSC_work)
       ITID = OMP_GET_THREAD_NUM()
-      IFLAG=0
+      IFLAG=0 !TODO ocesat od IFLAG
       U=0.
 !$OMP BARRIER
       IF (ITID.EQ.0) THEN
@@ -76,11 +78,25 @@ real::                            RADWID,RADWDI
           STOP 'Invalid input: need an input name as the first argument'
         ENDIF
         NAME=TRIM(NAME)
-        INQUIRE(FILE=NAME, EXIST=ponverze)
-        IF (.not.ponverze) THEN
+        INQUIRE(FILE=NAME, EXIST=log_check)
+        IF (.not.log_check) THEN
           STOP 'Invalid input: file not found'
         ENDIF
         CALL READ_EV(NAME,lopopgs,KONTROLMATRIX)
+        OPEN (UNIT=12,FILE='PSF_GS.DAT',STATUS='UNKNOWN')  !to GS
+        OPEN (UNIT=13,FILE='PSF_INI.DAT',STATUS='UNKNOWN') !from initial level
+        write(12,*) 'E_\gamma  PSF(E1)[MeV^-3]  PSF(M1)[MeV^-3]  PSF(E2)[MeV^-5]'
+        write(13,*) 'E_\gamma  PSF(E1)[MeV^-3]  PSF(M1)[MeV^-3]  PSF(E2)[MeV^-5]'
+        EG_MAX = 21.0
+        EG_STEP = 0.05
+        DO I = 1, INT(EG_MAX/EG_STEP)
+          eg = FLOAT(I)*EG_STEP
+          write(12,201) eg,sgamma(eg,eg,1)/eg**3,sgamma(eg,eg,3)/eg**3,sgamma(eg,eg,4)/eg**5
+          write(13,201) eg,sgamma(eg,BN,1)/eg**3,sgamma(eg,BN,3)/eg**3,sgamma(eg,BN,4)/eg**5
+    201   format(f7.3,4e13.5)
+        ENDDO
+        CLOSE (12)
+        CLOSE (13)
 !******adjustace*nbin***************************************************
         CALL ADJUST_NBIN(SPINC(1),NBIN)
         NVLAKEN=OMP_GET_NUM_THREADS()
@@ -92,13 +108,13 @@ real::                            RADWID,RADWDI
             gamma_multiplicita(NUC,I)=0
           ENDDO
         ENDDO
-        if (.not.allocated(intermediate2)) then
+        if ((.not.allocated(intermediate2)).AND.(N_MSC_FS.GE.1)) then
          allocate(intermediate2(1:N_MSC_FS,1:NREAL*NSUB,0:INT(BN/BIN_WIDTH)))
         endif 
-        if (.not.allocated(intermediate3)) then
+        if ((.not.allocated(intermediate3)).AND.(N_MSC_FS.GE.1)) then
          allocate(intermediate3(1:N_MSC_FS,1:NREAL*NSUB,0:INT(BN/BIN_WIDTH),0:INT(BN/BIN_WIDTH)))
         endif 
-        if (.not.allocated(XSC_work)) then
+        if ((.not.allocated(XSC_work)).AND.(N_MSC_FS.GE.1)) then
          allocate(XSC_work(1:N_MSC_FS,1:NREAL*NSUB,MIN_MULTIPLICITA:MAX_MULTIPLICITA,0:INT(BN/BIN_WIDTH)))
         endif 
         CALL CNTRLMTRX(KONTROLMATRIX,4,NREAL)  !should be OK
@@ -124,8 +140,8 @@ real::                            RADWID,RADWDI
         if (.not.allocated(DMQQ)) then
           allocate(DMQQ(1:NEVENTS,0:126))
         endif
-        if (.not.allocated(GTOTQQ)) then
-          allocate(GTOTQQ(1:NEVENTS,0:126))
+        if (.not.allocated(WIQQ)) then
+          allocate(WIQQ(1:NEVENTS,0:126))
         endif
         if (.not.allocated(NR_STEPS)) then
           allocate(NR_STEPS(1:NEVENTS))
@@ -136,11 +152,16 @@ real::                            RADWID,RADWDI
        IR2=KONTROLMATRIX(2,NUC) !radiation widths in form of precursors and low-lying intensity fluctuations
        IR3=KONTROLMATRIX(3,NUC) !MC of cascades - actual search for the final state
        IR4=KONTROLMATRIX(4,NUC) !MC of cascades - the seed for a) mixing of primaries b) "coin flip" of internal conversion
+       write(*,*) 'starting NREAL with these seeds: ',NUC,IR1,IR2,IR3,IR4 !TODO delete after testing of reproducibility
 !
        CALL LEVELSCH (IR1,NUC,IFLAG,NTOTAL,ITID,SPINC(1),U,LEVCON)
+       IF (ISWLS.EQ.1) THEN   ! Writing generated levels if requested
+         CALL WRITELEVELS(NUC,NBIN,LEVCON)
+       ENDIF ! ISWLS
        CALL GERMS(IR2,NTOTAL,NDDD,IRCONc,IRCON)
 !      Intensities of low-lying transitions can fluctuate
        CALL READ_INT(sall,IFLAG,U,IR2)
+       write(*,*) 'processing NREAL with these seeds: ',NUC,IR1,IR2,IR3,IR4 !TODO delete after testing of reproducibility
        DO ISUB=1,NSUB !TODO alokace a pocitani pozorovatelnych
 !
 !      The following DO loop serves for computing of mixing ratios
@@ -174,10 +195,11 @@ real::                            RADWID,RADWDI
          allocate(ISCON(0:2,0:NBIN,-2:2,0:1))
         endif 
         IREGI=0
-        IBIN=1
+        IBIN=0
         ILIN=1
         RADW(ISUB+(NUC-1)*NSUB)=0.
 !
+        write(*,*) 'before WIDTHS_R for: ',ISUB,' of ',NUC
         DO ILINc=1,NLINc
           CALL WIDTHS_R(ILINc,IPINC,SPINC(ILINc),IBIN,ILIN,TOTCON,STCON,GACON,ISCON,TOTDIS,STDIS,GADIS,&
                         ISDIS,LEVCON,IRCON,IRCONc,IFLAG,U,IREGI,EIN,EFI)
@@ -186,16 +208,15 @@ real::                            RADWID,RADWDI
            RADW(ISUB+(NUC-1)*NSUB)=RADW(ISUB+(NUC-1)*NSUB)+sngl(TOTCON(ILINc))+TOTDIS(ILINc)
         ENDDO
         IREGI=0
-        IBIN=1
+        IBIN=0
         ILIN=1
-!        write(*,*) 'cascading starting'
+        write(*,*) 'cascading starting for: ',ISUB,' of ',NUC
 !
 !       The master DO-loop
         DO IEV=1,NEVENTS
           IF (MOD(IEV-1,10000).EQ.0) WRITE(*,5410) ITID,IEV
  5410     FORMAT('+',21X,I6,2X,I10)
-          ponverze=.FALSE.
-          ponverk=.FALSE.
+          IC_type=0 !0 = gamma, 1 = K-shell, 2 = higher-shell, 3 = pair
           sidlev=.FALSE.
           EIN=BN
           STEPS=1
@@ -205,13 +226,13 @@ real::                            RADWID,RADWDI
           ELQQ(IEV,0)=BN
           SPQQ(IEV,0)=SPINc(ILINc)
           IPQQ(IEV,0)=IPINc
-          GTOTQQ(IEV,0)=RADW(ISUB+(NUC-1)*NSUB)
+          WIQQ(IEV,0)=RADW(ISUB+(NUC-1)*NSUB)
           IREGI=0
-          IBIN=1
+          IBIN=0
           ILIN=1
           CALL ONESTEP(ILINc,IPINC,SPINC(ILINc),IBIN,ILIN,TOTCON,STCON,GACON,ISCON,TOTDIS,STDIS,GADIS,&
                        ISDIS,IPFI,SPFI,IBFI,ILFI,DMIX2,sign,IR3,IR4,LEVCON,sall,U,IFLAG,EIN,EFI,IREGI,&
-                       ponverze,ponverk,IRCON,IRCONc)
+                       IC_type,IRCON,IRCONc)
 !          WRITE(*,*) '..'
           DO WHILE (EFI.GT.0.)
             ELQQ(IEV,steps)=EFI
@@ -229,17 +250,8 @@ real::                            RADWID,RADWDI
                 endif
               enddo
             ENDIF
-            if (ponverze) then
-              if (ponverk) then
-                ICQQ(IEV,steps)=1
-              else
-                ICQQ(IEV,steps)=2
-              endif
-            else
-              ICQQ(IEV,steps)=0
-            endif
-            ponverze=.FALSE.
-            ponverk=.FALSE.
+            ICQQ(IEV,steps)=IC_type
+            IC_type=0
             IPIN=IPFI
             SPIN=SPFI
             IBIN=IBFI
@@ -256,18 +268,18 @@ real::                            RADWID,RADWDI
               if (denum(dekod(ilfi,isubsc(spfi),ipfi)).eq.0) then
                 NISOM=NISOM+1
                 !WRITE(*,*) 'so you declared isomeric state that does not decay'
-                go to 6
+                GO TO 6
               endif
             endif
-            GTOTQQ(IEV,steps)=SNGL(TOTCON(0))+TOTDIS(0)
+            WIQQ(IEV,steps)=SNGL(TOTCON(0))+TOTDIS(0)
             STEPS=STEPS+1
             CALL ONESTEP(0,IPIN,SPIN,IBIN,ILIN,TOTCON,STCON,GACON,ISCON,TOTDIS,STDIS,GADIS,ISDIS,IPFI,SPFI,&
-                IBFI,ILFI,dmix2,sign,IR3,IR4,LEVCON,sall,U,IFLAG,EIN,EFI,IREGI,ponverze,ponverk,IRCON,IRCONc)
+                IBFI,ILFI,dmix2,sign,IR3,IR4,LEVCON,sall,U,IFLAG,EIN,EFI,IREGI,IC_type,IRCON,IRCONc)
           ENDDO  !WHILE EFI
    6      ELQQ(IEV,steps)=EFI
           SPQQ(IEV,steps)=SPFI
           IPQQ(IEV,steps)=IPFI
-          GTOTQQ(IEV,steps)=0.0
+          WIQQ(IEV,steps)=0.0
           DMQQ(IEV,steps)=sign*sqrt(dmix2)
 !   **** feeding of ground state ****
           if (lopopgs) then
@@ -276,30 +288,21 @@ real::                            RADWID,RADWDI
               popslev(kpopgs,ISUB+(NUC-1)*NSUB)=popslev(kpopgs,ISUB+(NUC-1)*NSUB)+1.
             endif
           endif
-          if (ponverze) then
-            if (ponverk) then
-              ICQQ(IEV,steps)=1
-            else
-              ICQQ(IEV,steps)=2
-            endif
-          else
-            ICQQ(IEV,steps)=0
-          endif
-          ponverze=.FALSE.
-          ponverk=.FALSE.
+          ICQQ(IEV,steps)=IC_type
+          IC_type=0
           NR_STEPS(IEV)=STEPS
    5      CONTINUE
         ENDDO
 !       writin the cascades
 !        write(*,*) 'cascading ended'
         CALL SPECTRA((ISUB+(NUC-1)*NSUB),ELQQ,SPQQ,DMQQ,IPQQ,ICQQ,NR_STEPS,intermediate2,intermediate3,XSC_work,gamma_multiplicita)
-        IF (ISWWR.EQ.1) CALL DO_IT((ISUB+(NUC-1)*NSUB),ELQQ,SPQQ,DMQQ,IPQQ,ICQQ,GTOTQQ,NR_STEPS,ITID)
+        IF (ISWWR.EQ.1) CALL DO_IT(NUC,ISUB,ELQQ,SPQQ,DMQQ,IPQQ,ICQQ,WIQQ,NR_STEPS,ITID)
         IRCONc(1)=IR3 !TODO staci takhle z hlediska reprodukovatelnosti?
        ENDDO !DO ISUB=1,NSUB
       ENDDO !DO NUC=1,NREAL
 !$OMP END DO
 !$OMP END PARALLEL
-      CALL WR_SPECTRA (intermediate2,intermediate3,XSC_work,gamma_multiplicita)
+      IF(N_MSC_FS.GT.0) CALL WR_SPECTRA (intermediate2,intermediate3,XSC_work,gamma_multiplicita)
       RADWID=0.
       RADWDI=0.
       DO NUC=1,NREAL*NSUB
@@ -347,70 +350,5 @@ real::                            RADWID,RADWDI
         !write(*,*) elowlev(k), popult(k), (poptlev(k,i), i=1,NREAL)
       ENDDO
 
-      CALL WRITE_DICE_PRO(RADWID,RADWDI,NUC,NDEAD,NISOM,POPULT,POPULS,POPERT,POPERS,COVAP,COVAS)
+      CALL WRITE_DICE_PRO(RADWID,RADWDI,NDEAD,NISOM,POPULT,POPULS,POPERT,POPERS,COVAP,COVAS)
       END PROGRAM DICE_EVENT
-!
-!**********************************************************************
-      SUBROUTINE LABELS(NOPTDE,NOPTE1,NOPTM1,NOPTE2,tdens,tsfe1,tsfm1,tsfe2)
-!************************************************************************
-        CHARACTER*8 tdens,tsfe1,tsfm1,tsfe2
-!
-!    Conversion number of model to string label of the model
-!
-      tdens='???'
-      tsfe1='???'
-      tsfm1='???'
-      tsfe2='???'
-
-      IF (noptde.EQ.0) THEN
-        tdens='CTF'
-      ELSEIF (noptde.EQ.1) THEN
-        tdens='BSFG'
-      ENDIF
-
-      IF (nopte1.EQ.0) THEN
-        tsfe1='SP'
-      ELSEIF (nopte1.EQ.1) THEN
-        tsfe1='BA'
-      ELSEIF (nopte1.EQ.2) THEN
-        tsfe1='TD-BA'
-      ELSEIF (nopte1.EQ.3) THEN
-        tsfe1='KMF+Chr'
-      ELSEIF (nopte1.EQ.4) THEN
-        tsfe1='KMF'
-      ELSEIF (nopte1.EQ.5) THEN
-        tsfe1='Chr'
-      ELSEIF (nopte1.EQ.6) THEN
-        tsfe1='Chr-phD'
-      ELSEIF (nopte1.EQ.7) THEN
-        tsfe1='Kop'
-      ELSEIF (nopte1.EQ.8) THEN
-        tsfe1='8'
-      ELSEIF (nopte1.EQ.9) THEN
-        tsfe1='9'
-      ELSEIF (nopte1.EQ.10) THEN
-        tsfe1='10'
-      ELSEIF (nopte1.EQ.11) THEN
-        tsfe1='11'
-      ENDIF
-
-      IF (noptm1.EQ.0) THEN
-        tsfm1='SP'
-      ELSEIF (noptm1.EQ.1) THEN
-        tsfm1='BA'
-      ELSEIF (noptm1.EQ.2) THEN
-        tsfm1='BAonSP'
-      ELSEIF (noptm1.EQ.3) THEN
-        tsfm1='Pow'
-      ELSEIF (noptm1.EQ.4) THEN
-        tsfm1='4'
-      ENDIF
-
-      IF (nopte2.EQ.0) THEN
-        tsfe2='SP'
-      ELSEIF (nopte2.EQ.1) THEN
-        tsfe2='BA'
-      ENDIF
-
-      END SUBROUTINE LABELS
-

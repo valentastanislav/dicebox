@@ -1,13 +1,18 @@
 !TODO gilbert cameron and spin distribution of initial states email jutta escher
-!allocate some variables to ensure stability in most general case
+!TODO NOPTE1.EQ.65 -> 75, added scaling with PAR_E1(1)
+!TODO ETR deleted, replaced by PAR_E1(1) or PAR_M1(1) in relevant models
+!TODO added TCONST parameter, now in models 39,46,56,74,75,76,79
+!TODO deleted 78 as it was the 74
+!TODO check about the models 48,49
 module spolecne
 use lokalni_fce
 integer::                             nbin,LMODE,LDENP,NLD,NGIGE,NGIGM,NGIGE2,NOPTE1,NOPTM1,NOPTE2,max_decays,numlev,NOPTDE
 
 real::                                BN,DELTA,PAIRING,FJ,ASHELL09,DEL09,TEMPER09,EZERO09,PAIRING09,EZERO,TEMPER,AMASS,DEL,ASHELL
-real::                                DENPL,DENPU,DENPA,DENPB,DENPC,DENPD,ZNUM,DENPPC,DENPA0,DENPA1,DENPA2,FERMC,DEG,DMG,QEL,EK0
-real::                                EGZERO,ETR,DIPELO,DIPEHI,DIPSUP,DIPSLP,DIPZER,EFEC_E
-
+real::                                DENPL,DENPU,DENPA,DENPB,DENPC,DENPD,ZNUM,DENPPC,DENPA0,DENPA1,DENPA2
+real::                                FERMC,TCONST,DEG,DMG,QEL,EK0
+real::                                EGZERO,DIPSLP,DIPZER,EFEC_E
+real,    dimension(1:4)::             PAR_E1,PAR_M1
 integer, dimension(1:99)::            denum
 integer, dimension(0:49,0:1)::        NDIS,NEIGENVAL
 integer, dimension(1:99,1:20)::       delev,deparity
@@ -15,12 +20,14 @@ integer,dimension(:,:),allocatable::  ityp
 
 real,    dimension(1:5)::             ER,SIG,W0,ERM,SIGM,WM0,ERE,SIGE,WE0
 real,    dimension(1:22)::            enrgfin !TODO define
-real,    dimension(0:70)::            TABENLD
+real,    dimension(0:270)::           TABENLD
 real,    dimension(1:99,0:20)::       sal,errsal,alpha !TODO somehow smart determine the maximum number of decays in DIS and make these allocatable
 real,    dimension(0:24,0:20)::       F4
 real,    dimension(1:99,1:20)::       despin
 real,    dimension(1:20,0:49,0:1)::   ENDIS
-real,    dimension(0:70,0:49,0:1)::   TABLD
+real,    dimension(0:270,0:49,0:1)::  TABLD
+integer, dimension(1:3)::             NPSF
+real,    dimension(1:3,0:400)::       TABENPSF,TABPSF
 real,    dimension(0:1000,0:49,0:1):: EIGENVAL
 real,    dimension(1:4,1:4,0:24,0:20):: Fk
 
@@ -80,7 +87,7 @@ REAL::                                sal_tp
 !         write(*,*) I,K
          DO J=1,ndis(ISUBSC(despin(I,K)),deparity(I,K))
            IF (endis(J,ISUBSC(despin(I,K)),deparity(I,K)).EQ.endis(delev(I,K),ISUBSC(despin(I,K)),deparity(I,K))) THEN
-   51       sal_tp=sal(I,K)+errsal(I,K)*GAUSS(IR4,U,IFLAG)
+   51       sal_tp=sal(I,K)+errsal(I,K)*GAUSS(IR4,U,IFLAG) !TODO we might want to change this to better accomodate E0 transitions <-alpha here, not later
             if (sal_tp.LE.0.) goto 51  !!!TODO ask FB ??/MK .LT.
             sall(I,K)=sall(I,K-1)+sal_tp*(1+alpha(I,K))
            ENDIF
@@ -230,7 +237,7 @@ REAL FUNCTION DENSITY(EEXC,SPIN,IPAR)         !should be OK
 !          => the parity-dependent level density allowed (PRC67,015803)
 !
 !***********************************************************************
-REAL::                                EFEC_E,SIGSQ,FJ,FTCDEN,PARDEP,PAIRS
+REAL::                                EFEC_E,SIGSQ,FJ,PARDEP,PAIRS
 real::                                EEXC,SPIN
 integer::                             IPAR
 !uses 'global' variables EZERO,TEMPER,AMASS,LDENP,DEL,ASHELL,various09,...
@@ -279,7 +286,23 @@ integer::                             IPAR
         IF (EFEC_E.LE.0.) RETURN
         SIGSQ=.0146*(1+SQRT(1+4*ASHELL*EFEC_E))/2./ASHELL*AMASS**1.666667
         DENSITY=EXP(2.*SQRT(ASHELL*EFEC_E))/(16.9706*SQRT(SIGSQ)*ASHELL**.25*EFEC_E**1.25)
+      ELSEIF (NOPTDE.EQ.66) THEN                             ! BSFG - Von Egidy (2006) cut-off
+        EFEC_E=EEXC-DEL
+        IF (EFEC_E.LE.0.) RETURN
+        IF ((SPIN.EQ.2.5).AND.(EEXC.GE.DENPC).AND.(EEXC.LE.DENPD)) RETURN
+        SIGSQ=.0146*(1+SQRT(1+4*ASHELL*EFEC_E))/2./ASHELL*AMASS**1.666667
+        DENSITY=EXP(2.*SQRT(ASHELL*EFEC_E))/(16.9706*SQRT(SIGSQ)*ASHELL**.25*EFEC_E**1.25)
+      ELSEIF (NOPTDE.EQ.67) THEN                             ! BSFG - Von Egidy (2006) cut-off
+        EFEC_E=EEXC-DEL
+        IF (EFEC_E.LE.0.) RETURN
+        IF (((SPIN.EQ.2.5).OR.(SPIN.EQ.3.5)).AND.(EEXC.GE.DENPC).AND.(EEXC.LE.DENPD)) RETURN
+        SIGSQ=.0146*(1+SQRT(1+4*ASHELL*EFEC_E))/2./ASHELL*AMASS**1.666667
+        DENSITY=EXP(2.*SQRT(ASHELL*EFEC_E))/(16.9706*SQRT(SIGSQ)*ASHELL**.25*EFEC_E**1.25)
       ELSEIF (NOPTDE.EQ.11) THEN                            ! Goriely
+        IF (EEXC.LE.0.) RETURN
+        DENSITY = ALD(EEXC,SPIN,IPAR)
+        RETURN
+      ELSEIF (NOPTDE.EQ.12) THEN                            ! Kawano
         IF (EEXC.LE.0.) RETURN
         DENSITY = ALD(EEXC,SPIN,IPAR)
         RETURN
@@ -300,6 +323,12 @@ integer::                             IPAR
         IF (EEXC.LE..5*PAIRING09) RETURN
         SIGSQ=.391*AMASS**.675*(EEXC-.5*PAIRING09)**.312
         DENSITY=EXP(2.*SQRT(ASHELL09*EFEC_E))/(16.9706*SQRT(SIGSQ)*ASHELL09**.25*EFEC_E**1.25)
+      ELSEIF (NOPTDE.EQ.13) THEN                             ! Oslo BS - CTF with BSFG von Egidy cut-off
+        EEFF=EEXC-DEL
+        IF (EEFF.LE.0.) RETURN
+        SIGSQ=.0146*(1+SQRT(1+4*ASHELL*EEFF))/2./ASHELL*AMASS**1.666667
+        EEFF=EEXC-EZERO
+        DENSITY=EXP(EEFF/TEMPER)/TEMPER
       ENDIF
 !
       FJ=(SPIN+.5)*EXP(-(SPIN+.5)**2/(2.*SIGSQ))/SIGSQ
@@ -370,35 +399,24 @@ integer::             IP
 INTEGER::             I,J,K,NLMIN
 !
       ALD = 0.0
-!
 !    Low level densities treated in a special way
-!
-      NLMIN = 0
-      DO I = 1, NLD
-        IF (TABLD(I,ISUBSC(SPIN),IP).GT.0.0) THEN
-          NLMIN = I - 1
-          GOTO 9
-        ENDIF
+      NLMIN=NLD
+      DO WHILE ((TABLD(NLMIN,ISUBSC(SPIN),IP).GT.0.0).AND.(NLMIN.GT.0))
+        NLMIN=NLMIN-1 !this can be anything from NLD down to 0
       ENDDO
-      GOTO 11
-   9  CONTINUE
-      IF (EX.LE.TABENLD(NLMIN)) GOTO 11   ! rho = 0
-      IF (EX.LE.TABENLD(NLMIN+1)) THEN    ! linear interpolation for low rho
-        EXPOM = (EX - TABENLD(NLMIN))/(TABENLD(NLMIN + 1) - TABENLD(NLMIN))
-        ALD =TABLD(NLMIN+1,ISUBSC(SPIN),IP)-TABLD(NLMIN,ISUBSC(SPIN),IP)
-        ALD = ALD * EXPOM
-        GOTO 11
-      ENDIF
-      IF (EX.LE.TABENLD(NLMIN+2)) THEN    
-       EXPOM = (EX - TABENLD(NLMIN + 1))/(TABENLD(NLMIN + 2) - TABENLD(NLMIN + 1))
-       ALD=TABLD(NLMIN+2,ISUBSC(SPIN),IP)-TABLD(NLMIN+1,ISUBSC(SPIN),IP)
-       ALD = TABLD(NLMIN+1,ISUBSC(SPIN),IP) + ALD * EXPOM
-       GOTO 11
-      ENDIF
-!
-      IF (EX.LE.TABENLD(2)) THEN
+      ! IF ((ISUBSC(SPIN).EQ.0).AND.(IP.EQ.0)) THEN
+      !   write(*,*) 'E_exc ',EX,' NLMIN ',NLMIN,' E_tab ',TABENLD(NLMIN),TABENLD(NLMIN+1),' LD_tab ',TABLD(NLMIN,ISUBSC(SPIN),IP)&
+      !   ,TABLD(NLMIN+1,ISUBSC(SPIN),IP)
+      ! ENDIF
+      IF (NLMIN.GE.(NLD-1)) THEN !this happens for highest spins which are non existent -> density is plain zero
+        ! IF ((ISUBSC(SPIN).EQ.0).AND.(IP.EQ.0)) THEN
+        !   write(*,*) 'lvl density comes out at #0 as ',ALD
+        ! ENDIF
+        RETURN
+      ELSEIF ((NLMIN.EQ.0).OR.(EX.GT.TABENLD(NLMIN+2))) THEN ! NLMIN=0 means all densities are bigger than zero and any interpolation should be fine, otherwise we go two bins above the last zero density bin where the exp-log interpolation should be safe
+       IF (EX.LE.TABENLD(2)) THEN
         K=0
-      ELSE
+       ELSE
         IF (EX.LE.TABENLD(NLD-1)) THEN
           DO I=3,NLD-1
             IF (EX.LE.TABENLD(I)) THEN
@@ -409,15 +427,13 @@ INTEGER::             I,J,K,NLMIN
         ELSE
         K=NLD-4
         ENDIF
-      ENDIF
-!
-    1 exlog=log(ex)
-      DO J=1,4
+       ENDIF
+    1  EXLOG=log(EX)
+       DO J=1,4
          XX(J)=log(TABENLD(K+J))
          YY(J)=log(TABLD(K+J,ISUBSC(SPIN),IP))
-      ENDDO !J
-      
-      DO I=1,4
+       ENDDO !J
+       DO I=1,4
          A(I)=YY(I)
          DO J=1,4
             IF (I.NE.J) A(I)=A(I)/(XX(J)-XX(I))
@@ -426,13 +442,110 @@ INTEGER::             I,J,K,NLMIN
             IF (I.NE.J) A(I)=A(I)*(XX(J)-EXLOG)
          ENDDO !J
          ALD=ALD+A(I)
-      ENDDO !I
-!
-      ALD=exp(ALD)
+       ENDDO !I
+       ALD=exp(ALD)
+      !  IF ((ISUBSC(SPIN).EQ.0).AND.(IP.EQ.0)) THEN
+      !   write(*,*) 'lvl density comes out at #1 as ',ALD
+      !  ENDIF
+       RETURN
+      ELSE !in regime near zero densities we use linear interpolation of two nearest bins
+       IF (EX.LE.TABENLD(1)) THEN !this should never happen, the tables should start at ~0 MeV while the E_crit should be at least few states higher
+         ALD = TABLD(1,ISUBSC(SPIN),IP)
+        !  IF ((ISUBSC(SPIN).EQ.0).AND.(IP.EQ.0)) THEN
+        !   write(*,*) 'lvl density comes out at #2 as ',ALD
+        !  ENDIF
+         RETURN
+       ELSEIF (EX.GE.TABENLD(NLD)) THEN !this should never happen, the tables should go above the initial cascading energy
+         ALD = TABLD(NLD,ISUBSC(SPIN),IP)
+        !  IF ((ISUBSC(SPIN).EQ.0).AND.(IP.EQ.0)) THEN
+        !   write(*,*) 'lvl density comes out at #3 as ',ALD
+        !  ENDIF
+         RETURN
+       ELSE
+         I=1
+         DO WHILE (EX.GT.TABENLD(I))
+           I=I+1
+         ENDDO
+         ALD = TABLD(I-1,ISUBSC(SPIN),IP) + (EX-TABENLD(I-1))*((TABLD(I,ISUBSC(SPIN),IP)-TABLD(I-1,ISUBSC(SPIN),IP))/&
+         (TABENLD(I)-TABENLD(I-1)))
+        !  IF ((ISUBSC(SPIN).EQ.0).AND.(IP.EQ.0)) THEN
+        !   write(*,*) 'lvl density comes out at #4 as ',ALD,' with I =',I
+        !  ENDIF
+         RETURN
+       ENDIF
+      ENDIF
+      ! IF ((ISUBSC(SPIN).EQ.0).AND.(IP.EQ.0)) THEN
+      !   write(*,*) 'lvl density comes out at #5 as ',ALD
+      ! ENDIF
 
-   11 CONTINUE
       RETURN
       END FUNCTION ALD
+!***********************************************************************
+REAL FUNCTION APSF(EGX,MTYP)
+!***********************************************************************
+real,DIMENSION(1:4):: XX,YY,A
+real::                EGX,EXLOG
+INTEGER::             I,J,K,NLMIN
+!
+      APSF = 0.0
+!    Low PSF treated in a special way
+      NLMIN=NPSF(MTYP)
+      DO WHILE ((TABPSF(MTYP,NLMIN).GT.0.0).AND.(NLMIN.GT.0))
+        NLMIN=NLMIN-1 !this is the highest bin where PSF is zero, can be anything from NPSF(MTYP) down to 0
+      ENDDO
+      IF (NLMIN.GE.(NPSF(MTYP)-1)) THEN !if all but last two are zero, return zero
+       RETURN
+      ELSEIF ((NLMIN.EQ.0).OR.(EGX.GT.TABENPSF(MTYP,NLMIN+2))) THEN ! NLMIN=0 means all PSFs are bigger than zero and any interpolation should be fine, otherwise we go two bins above the last zero PSF bin where the exp-log interpolation should be safe
+       IF (EGX.LE.TABENPSF(MTYP,2)) THEN
+        K=0
+       ELSE
+        IF (EGX.LE.TABENPSF(MTYP,NPSF(MTYP)-1)) THEN
+          DO I=3,NPSF(MTYP)-1
+            IF (EGX.LE.TABENPSF(MTYP,I)) THEN
+              K=I-3
+              GO TO 1
+            ENDIF
+          ENDDO !I
+        ELSE
+        K=NPSF(MTYP)-4
+        ENDIF
+       ENDIF
+    1  EXLOG=log(EGX)
+       DO J=1,4
+         XX(J)=log(TABENPSF(MTYP,K+J))
+         YY(J)=log(TABPSF(MTYP,K+J))
+       ENDDO !J
+       DO I=1,4
+         A(I)=YY(I)
+         DO J=1,4
+            IF (I.NE.J) A(I)=A(I)/(XX(J)-XX(I))
+         ENDDO !J
+         DO J=1,4
+            IF (I.NE.J) A(I)=A(I)*(XX(J)-EXLOG)
+         ENDDO !J
+         APSF=APSF+A(I)
+       ENDDO !I
+       APSF=exp(APSF)
+       RETURN
+      ELSE !in regime near zero PSF we use linear interpolation of two nearest bins
+       IF (EGX.LE.TABENPSF(MTYP,1)) THEN !this should never happen, the tables should start at ~0 MeV while the E_crit should be at least few states higher
+         APSF = TABPSF(MTYP,1)
+         RETURN
+       ELSEIF (EGX.GE.TABENPSF(MTYP,NPSF(MTYP))) THEN !this should never happen, the tables should go above the initial cascading energy
+         APSF = TABPSF(MTYP,NPSF(MTYP))
+         RETURN
+       ELSE
+         I=1
+         DO WHILE (EGX.GT.TABENPSF(MTYP,I))
+           I=I+1
+         ENDDO
+         APSF = TABPSF(MTYP,I-1) +(EGX-TABENPSF(MTYP,I-1))*((TABPSF(MTYP,I)-TABPSF(MTYP,I-1))/(TABENPSF(MTYP,I)-TABENPSF(MTYP,I-1)))
+         RETURN
+       ENDIF
+      ENDIF
+
+      RETURN
+      END FUNCTION APSF
 !***********************************************************************
 SUBROUTINE GENERATE_GOE_EIGEN_VAL(IR,N,IFLAG,U)         !should be OK
 !***********************************************************************
@@ -547,7 +660,7 @@ REAL FUNCTION SGAMMA(EGAM,EINI,ITYP)
 !   M1:  NOPTM1= 0: Single-particle approximation
 !                1: Classical lorentzian GDMR
 !                3: Scissors (first) resonance is build up only on states
-!                   with excitation energy lower than Etr
+!                   with excitation energy lower than PAR_M1(1)
 !                4: Classical lorentzian build on the "background"
 !                   that is described by the SP (constant functio)
 !
@@ -592,7 +705,31 @@ real,dimension(1:22)::            enrgfin
           ENDDO
           SGAMMA=PIH*Q*EGAM**3
           RETURN
-        ELSEIF (NOPTE1.EQ.2) THEN   ! GDER with E,T-dependent damping
+        ELSEIF (NOPTE1.EQ.11) THEN  ! Goriely tables
+          SGAMMA = APSF(EGAM,1)
+          SGAMMA = SGAMMA + EINI * PAR_E1(1) / (1.0+EXP(EGAM-PAR_E1(2))) 
+          SGAMMA = SGAMMA * EGAM**3
+          SFCEE1=SGAMMA
+          RETURN
+        ELSEIF (NOPTE1.EQ.50) THEN  ! Goriely tables
+          SGAMMA = APSF(EGAM,1)*EGAM**3
+          Q=0.
+          DO I=1,NGIGE              ! loop over both GDR peaks
+            QQ=SIG(I)*(EGAM*W0(I)**2/((EGAM**2-ER(I)**2)**2+(EGAM*W0(I))**2))
+            Q=Q+QQ
+          ENDDO
+          SGAMMA = SGAMMA + PIH*Q*EGAM**3
+          SFCEE1=SGAMMA
+          RETURN
+        ELSEIF (NOPTE1.EQ.91) THEN  !SLO with exponential low energy enhancement as requested by Artemis
+          Q=SIG(1)*EXP(-(EGAM-ER(1))*W0(1))
+          DO I=2,NGIGE
+            QQ=SIG(I)*(EGAM*W0(I)**2/((EGAM**2-ER(I)**2)**2+(EGAM*W0(I))**2))
+            Q=Q+QQ
+          ENDDO
+          SGAMMA=PIH*Q*EGAM**3
+          RETURN
+        ELSEIF (NOPTE1.EQ.2) THEN   !ELO = GDER with E,T-dependent damping
           TFIN=TERM(EINI-EGAM)
           Q=0.
           DO I=1,NGIGE
@@ -610,7 +747,7 @@ real,dimension(1:22)::            enrgfin
             WPHEN=EK0+(1.-EK0)*(EGAM-EGZERO)/(ER(I)-EGZERO)
             W=WPHEN*W0(I)*(EGAM**2+PI42*TFIN**2)/ER(I)**2 !energy and temperature dependent width
             WPHENZ=EK0-(1.-EK0)*EGZERO/(ER(I)-EGZERO)
-            SLIM=FERMC*PI42*TFIN**2*W0(I)/ER(I)**5*WPHENZ !the non-zero limit at Egam-->0
+            SLIM=WPHENZ*FERMC*PI42*TFIN**2*W0(I)/ER(I)**5 !the non-zero limit at Egam-->0
             QQ=SIG(I)*W0(I)*(SLIM+EGAM*W/((EGAM**2-ER(I)**2)**2+(EGAM*W)**2))
             Q=Q+QQ
           ENDDO
@@ -626,7 +763,7 @@ real,dimension(1:22)::            enrgfin
           ENDDO
           SGAMMA=PIH*Q*EGAM**3
           RETURN
-        ELSEIF (NOPTE1.EQ.5) THEN    !Pure Chrien model (similar to !OPT=3,but no Kadmenskij for low EGAM) viz Kopecky
+        ELSEIF (NOPTE1.EQ.5) THEN    !GLO as called nowdays, Pure Chrien model (similar to !OPT=3,but no Kadmenskij for low EGAM) viz Kopecky
           TFIN=TERM(EINI-EGAM)
           Q=0.
           DO I=1,NGIGE
@@ -637,7 +774,18 @@ real,dimension(1:22)::            enrgfin
           ENDDO
           SGAMMA=PIH*Q*EGAM**3
           RETURN
-        ELSEIF (NOPTE1.EQ.6) THEN  !Empirical generalization of temperature dependent damping according to Kopecky in Chrien model (EGLO) - an error found in the SLIM - corrected in NOPTE1=3
+        ELSEIF (NOPTE1.EQ.56) THEN  !GLO with constant temperature and low-energy enhancement (for Artemis)
+          TFIN=TCONST
+          Q=SIG(1)*EXP(-W0(1)*(EGAM-ER(1)))
+          DO I=2,NGIGE
+            W=W0(I)*(EGAM**2+PI42*TFIN**2)/ER(I)**2
+            SLIM=FERMC*PI42*TFIN**2*W0(I)/ER(I)**5
+            QQ=SIG(I)*W0(I)*(SLIM+EGAM*W/((EGAM**2-ER(I)**2)**2+(EGAM*W)**2))
+            Q=Q+QQ
+          ENDDO
+          SGAMMA=PIH*Q*EGAM**3
+          RETURN
+        ELSEIF (NOPTE1.EQ.6) THEN  !MGLO <-Empirical generalization of temperature dependent damping from EGLO(3)
           TFIN=TERM(EINI-EGAM)
           Q=0.
           DO I=1,NGIGE
@@ -672,8 +820,8 @@ real,dimension(1:22)::            enrgfin
           ENDDO
           SGAMMA=PIH*Q*EGAM**3
           RETURN
-        ELSEIF (NOPTE1.EQ.9) THEN  !Empirical generalization of temperature
-!          dependent damping according to Kopecky in Chrien model (EGLO)
+        ELSEIF (NOPTE1.EQ.9) THEN  !Our empirical generalization of temperature
+!          dependent damping according to Kopecky in Chrien model (MGLO)
 !          with the first resonance of Lorentzian type
           TFIN=TERM(EINI-EGAM)
           Q=0.
@@ -691,14 +839,14 @@ real,dimension(1:22)::            enrgfin
         ELSEIF (NOPTE1.EQ.10) THEN   ! KMF for low energies
           TFIN=TERM(EINI-EGAM)       ! Mix KMF and BA for higher energies
           Q=0.
-          IF (EGAM.LE.DIPELO) THEN
+          IF (EGAM.LE.PAR_E1(1)) THEN
            DO I=1,NGIGE
             W=W0(I)*(EGAM**2+PI42*TFIN**2)/ER(I)**2
             QQ=FERMC*SIG(I)*W0(I)*W*ER(I)/(EGAM**2-ER(I)**2)**2
             Q=Q+QQ
            ENDDO
           ELSE
-           x=(EGAM-DIPELO)/(DIPEHI-DIPELO)         ! Admixture of BA to KMF
+           x=(EGAM-PAR_E1(1))/(PAR_E1(2)-PAR_E1(1))         ! Admixture of BA to KMF
            IF (x.GT.1.) x=1.
            DO I=1,NGIGE
             QQ=SIG(I)*(EGAM*W0(I)**2/((EGAM**2-ER(I)**2)**2+(EGAM*W0(I))**2))
@@ -718,7 +866,7 @@ real,dimension(1:22)::            enrgfin
             Q=Q+QQ
           ENDDO
           x=DIPSLP*EGAM+DIPZER 
-          if (x.LT.DIPSUP) x=DIPSUP
+          if (x.LT.PAR_E1(3)) x=PAR_E1(3)
           if (x.GT.1.0)    x=1.0
           SGAMMA=PIH*Q*EGAM**3*x
           RETURN
@@ -732,7 +880,7 @@ real,dimension(1:22)::            enrgfin
             Q=Q+QQ
           ENDDO
           x=DIPSLP*EGAM+DIPZER 
-          if (x.LT.DIPSUP) x=DIPSUP
+          if (x.LT.PAR_E1(3)) x=PAR_E1(3)
           if (x.GT.1.0)    x=1.0
           SGAMMA=PIH*Q*EGAM**3*x
           RETURN
@@ -747,25 +895,23 @@ real,dimension(1:22)::            enrgfin
             Q=Q+QQ
           ENDDO
           x=DIPSLP*EGAM+DIPZER 
-          if (x.LT.DIPSUP) x=DIPSUP
+          if (x.LT.PAR_E1(3)) x=PAR_E1(3)
 !          if (x.GT.1.0)    x=1.0
           SGAMMA=PIH*Q*EGAM**3*x
           RETURN
 
-        ELSEIF (NOPTE1.EQ.36) THEN  !EGLO (6 - incorrect); suppressed for small EGAM
+        ELSEIF (NOPTE1.EQ.36) THEN  !TODO from which is this derived: EGLO (6 - incorrect); suppressed for small EGAM
           TFIN=TERM(EINI-EGAM)
           Q=0.
           DO I=1,NGIGE
             WPHEN=EK0+(1.-EK0)*(EGAM-EGZERO)/(ER(I)-EGZERO)
             W=WPHEN*W0(I)*(EGAM**2+PI42*TFIN**2)/ER(I)**2
-!          !     ^ .......... energy and temperature dependent width
             SLIM=FERMC*PI42*TFIN**2*W0(I)/ER(I)**5
-!          !     ^ ...... the non-zero limit at Egam-->0
             QQ=SIG(I)*W0(I)*(SLIM+EGAM*W/((EGAM**2-ER(I)**2)**2+(EGAM*W)**2))
             Q=Q+QQ
           ENDDO
           x=DIPSLP*EGAM+DIPZER 
-          if (x.LT.DIPSUP) x=DIPSUP
+          if (x.LT.PAR_E1(3)) x=PAR_E1(3)
           if (x.GT.1.0)    x=1.0
           SGAMMA=PIH*Q*EGAM**3*x
           RETURN
@@ -774,46 +920,65 @@ real,dimension(1:22)::            enrgfin
           Q=0.
           DO I=1,NGIGE
             WPHEN=EK0+(1.-EK0)*(EGAM-EGZERO)/(ER(I)-EGZERO)
-            W=WPHEN*W0(I)*(EGAM**2+PI42*TFIN**2)/ER(I)**2 !energy and temperature dependent width
+            W=WPHEN*W0(I)*(EGAM**2+PI42*TFIN**2)/ER(I)**2
             QQ=SIG(I)*W0(I)*(EGAM*W/((EGAM**2-ER(I)**2)**2+(EGAM*W)**2))
             Q=Q+QQ
           ENDDO
           x=DIPSLP*EGAM+DIPZER 
-          if (x.LT.DIPSUP) x=DIPSUP
+          if (x.LT.PAR_E1(3)) x=PAR_E1(3)
           if (x.GT.1.0)    x=1.0
           SGAMMA=PIH*Q*EGAM**3*x
           RETURN
-!
+! TODO change the PAR_E1(1) - talk to MK about the logic of this
         ELSEIF (NOPTE1.EQ.74) THEN   ! KMF with constant T
-!          TFIN=0.015        
-          TFIN=DIPSUP        
+          TFIN=TCONST        
           Q=0.
           DO I=1,NGIGE
            W=W0(I)*(EGAM**2+PI42*TFIN**2)/ER(I)**2
            QQ=FERMC*SIG(I)*W0(I)*W*ER(I)/(EGAM**2-ER(I)**2)**2
            Q=Q+QQ
           ENDDO
-          SGAMMA=DIPELO*PIH*Q*EGAM**3    
+          SGAMMA=PAR_E1(1)*PIH*Q*EGAM**3    
         RETURN
-        ELSEIF (NOPTE1.EQ.76) THEN  ! EGLO(6) with constant T
-          TFIN=DIPSUP        
+        ELSEIF (NOPTE1.EQ.75) THEN  !GLO with constant T
+          TFIN=TCONST
+          Q=0.
+          DO I=1,NGIGE
+            W=W0(I)*(EGAM**2+PI42*TFIN**2)/ER(I)**2
+            SLIM=FERMC*PI42*TFIN**2*W0(I)/ER(I)**5
+            QQ=SIG(I)*W0(I)*(SLIM+EGAM*W/((EGAM**2-ER(I)**2)**2+(EGAM*W)**2))
+            Q=Q+QQ
+          ENDDO
+          SGAMMA=PAR_E1(1)*PIH*Q*EGAM**3
+          RETURN
+        ELSEIF (NOPTE1.EQ.76) THEN  ! MGLO(6) with constant T
+          TFIN=TCONST        
           Q=0.
           DO I=1,NGIGE
             WPHEN=EK0+(1.-EK0)*(EGAM-EGZERO)/(ER(I)-EGZERO)
             W=WPHEN*W0(I)*(EGAM**2+PI42*TFIN**2)/ER(I)**2
-!          !     ^ .......... energy and temperature dependent width
             SLIM=FERMC*PI42*TFIN**2*W0(I)/ER(I)**5
-!          !     ^ ...... the non-zero limit at Egam-->0
             QQ=SIG(I)*W0(I)*(SLIM+EGAM*W/((EGAM**2-ER(I)**2)**2+(EGAM*W)**2))
             Q=Q+QQ
           ENDDO
-          SGAMMA=DIPELO*PIH*Q*EGAM**3
+          SGAMMA=PAR_E1(1)*PIH*Q*EGAM**3
+          RETURN
+        ELSEIF (NOPTE1.EQ.77) THEN  ! MGLO(6) with constant T and Lorentzian LLR
+          TFIN=TCONST        
+          Q=SIG(1)*(EGAM*W0(1)**2/((EGAM**2-ER(1)**2)**2+(EGAM*W0(1))**2)) ! Lorentzian LLR
+          DO I=2,NGIGE
+            WPHEN=EK0+(1.-EK0)*(EGAM-EGZERO)/(ER(I)-EGZERO)
+            W=WPHEN*W0(I)*(EGAM**2+PI42*TFIN**2)/ER(I)**2
+            SLIM=FERMC*PI42*TFIN**2*W0(I)/ER(I)**5
+            QQ=SIG(I)*W0(I)*(SLIM+EGAM*W/((EGAM**2-ER(I)**2)**2+(EGAM*W)**2))
+            Q=Q+QQ
+          ENDDO
+          SGAMMA=PAR_E1(1)*PIH*Q*EGAM**3
           RETURN
 !
         ELSEIF (NOPTE1.EQ.39) THEN   ! Pure Fermi liquid theory (Kadmenskij)
 !                                      suppressed for small EGAM - const. T !!!
-!          TFIN=TERM(EINI-EGAM)          
-          TFIN=DENPA2
+          TFIN=TCONST
           Q=0.
           DO I=1,NGIGE
             W=W0(I)*(EGAM**2+PI42*TFIN**2)/ER(I)**2
@@ -821,7 +986,7 @@ real,dimension(1:22)::            enrgfin
             Q=Q+QQ
           ENDDO
           x=DIPSLP*EGAM+DIPZER 
-          if (x.LT.DIPSUP) x=DIPSUP
+          if (x.LT.PAR_E1(3)) x=PAR_E1(3)
           if (x.GT.1.0)    x=1.0
           SGAMMA=PIH*Q*EGAM**3*x
           RETURN
@@ -838,27 +1003,10 @@ real,dimension(1:22)::            enrgfin
             Q=Q+QQ
           ENDDO
           x=DIPSLP*EGAM+DIPZER 
-          if (x.LT.DIPSUP) x=DIPSUP
+          if (x.LT.PAR_E1(3)) x=PAR_E1(3)
           if (x.GT.1.0)    x=1.0
           SGAMMA=PIH*Q*EGAM**3*x
           RETURN
-!
-        ELSEIF (NOPTE1.EQ.65) THEN    !Pure Chrien model (5) with fixed T
-          TFIN=DENPA2
-          Q=0.
-          DO I=1,NGIGE
-            W=W0(I)*(EGAM**2+PI42*TFIN**2)/ER(I)**2
-!          !     ^ .......... energy and temperature dependent width
-            SLIM=FERMC*PI42*TFIN**2*W0(I)/ER(I)**5
-!          !     ^ ...... the non-zero limit at Egam-->0
-            QQ=SIG(I)*W0(I)*(SLIM+EGAM*W/((EGAM**2-ER(I)**2)**2+(EGAM*W)**2))
-            Q=Q+QQ
-          ENDDO
-          SGAMMA=PIH*Q*EGAM**3
-          RETURN
-
-
-!
         ELSEIF (NOPTE1.EQ.12) THEN   ! MLO1 (Original Plujko)
 !         !tato procedura nepostihuje mozna uplne vsechny pripady (hodnoty parametru),
 !         !ktere mohou podle 'Plujkovy teorie' nastat 
@@ -1013,12 +1161,12 @@ real,dimension(1:22)::            enrgfin
           ENDDO
           SGAMMA=PIH*Q*EGAM**3
           RETURN
-        ELSEIF (NOPTE1.EQ.67) THEN   ! Mughabghab+Dunford - formulation from RIPL2 
+        ELSEIF (NOPTE1.EQ.67) THEN   !GFL - Mughabghab+Dunford - formulation from RIPL2 
 !
           S2=217.16/AMASS/AMASS      !global parametrization, see RIPL2 
           CDQ=1.05
           TFIN=TERM(EINI-EGAM)
-          BETA2 = DIPSUP*DIPSUP    !square of deformation
+          BETA2 = PAR_E1(3)*PAR_E1(3)    !square of deformation
 !
           Q=0.
           DO I=1,NGIGE
@@ -1036,7 +1184,7 @@ real,dimension(1:22)::            enrgfin
           S2=217.16/AMASS/AMASS      !global parametrization, see RIPL2 
           CDQ=1.05
           TFIN=TERM(EINI-EGAM)
-          BETA2 = DIPSUP*DIPSUP    !square of deformation
+          BETA2 = PAR_E1(3)*PAR_E1(3)    !square of deformation
 !
           Q=0.
           DO I=1,NGIGE
@@ -1214,14 +1362,13 @@ real,dimension(1:22)::            enrgfin
 !
         ELSEIF (NOPTE1.EQ.41) THEN   !!!!!! Oslo KMF for Yb
           TFIN=TERMOSLO(EINI-EGAM)        
-!          TFIN=0.34        
           Q=0.
           DO I=1,NGIGE
            W=W0(I)*(EGAM**2+PI42*TFIN**2)/ER(I)**2
            QQ=FERMC*SIG(I)*W0(I)*W*ER(I)/(EGAM**2-ER(I)**2)**2
            Q=Q+QQ
           ENDDO
-          SGAMMA=DIPELO*PIH*Q*EGAM**3    
+          SGAMMA=PAR_E1(1)*PIH*Q*EGAM**3    
         RETURN
         ELSEIF (NOPTE1.EQ.42) THEN   !!!!!! Oslo KMF - our temperature
           TFIN=TERM(EINI-EGAM)        
@@ -1231,7 +1378,21 @@ real,dimension(1:22)::            enrgfin
            QQ=FERMC*SIG(I)*W0(I)*W*ER(I)/(EGAM**2-ER(I)**2)**2
            Q=Q+QQ
           ENDDO
-          SGAMMA=DIPELO*PIH*Q*EGAM**3    
+          SGAMMA=PAR_E1(1)*PIH*Q*EGAM**3    
+        RETURN
+        ELSEIF (NOPTE1.EQ.57) THEN   ! Fermi liquid theory (Kadmenskij)
+          TFIN=TERM(EINI-EGAM)      ! with 1st resonance of Lorentz. shape
+          Q=0.
+          DO I=1,2
+            QQ=SIG(I)*(EGAM*W0(I)**2/((EGAM**2-ER(I)**2)**2+(EGAM*W0(I))**2))
+            Q=Q+QQ
+          ENDDO
+          DO I=3,NGIGE
+            W=W0(I)*(EGAM**2+PI42*TFIN**2)/ER(I)**2
+            QQ=FERMC*SIG(I)*W0(I)*W*ER(I)/(EGAM**2-ER(I)**2)**2
+            Q=Q+QQ
+          ENDDO
+          SGAMMA=PAR_E1(1)*PIH*Q*EGAM**3
         RETURN
         ELSEIF (NOPTE1.EQ.43) THEN   !!!!!! Oslo KMF; including softpole
           TFIN=TERMOSLO(EINI-EGAM)        
@@ -1241,9 +1402,9 @@ real,dimension(1:22)::            enrgfin
            QQ=FERMC*SIG(I)*W0(I)*W*ER(I)/(EGAM**2-ER(I)**2)**2
            Q=Q+QQ
           ENDDO
-          Q=Q+DIPEHI/(EGAM**DIPSUP)
-          SGAMMA=DIPELO*PIH*Q*EGAM**3    
-          RETURN
+          Q=Q+PAR_E1(2)/(EGAM**PAR_E1(3))
+          SGAMMA=PAR_E1(1)*PIH*Q*EGAM**3    
+        RETURN
         ELSEIF (NOPTE1.EQ.44) THEN   !!!!!! Oslo KMF - our temperature; including softpole
           TFIN=TERM(EINI-EGAM)        
           Q=0.
@@ -1252,8 +1413,8 @@ real,dimension(1:22)::            enrgfin
            QQ=FERMC*SIG(I)*W0(I)*W*ER(I)/(EGAM**2-ER(I)**2)**2
            Q=Q+QQ
           ENDDO
-          Q=Q+DIPEHI/(EGAM**DIPSUP)
-          SGAMMA=DIPELO*PIH*Q*EGAM**3    
+          Q=Q+PAR_E1(2)/(EGAM**PAR_E1(3))
+          SGAMMA=PAR_E1(1)*PIH*Q*EGAM**3    
         RETURN
         ELSEIF (NOPTE1.EQ.45) THEN   !!!!!! Oslo KMF - const T 
           TFIN=TERMOSLO(BN-EGAM)        
@@ -1263,64 +1424,64 @@ real,dimension(1:22)::            enrgfin
            QQ=FERMC*SIG(I)*W0(I)*W*ER(I)/(EGAM**2-ER(I)**2)**2
            Q=Q+QQ
           ENDDO
-          SGAMMA=DIPELO*PIH*Q*EGAM**3    
+          SGAMMA=PAR_E1(1)*PIH*Q*EGAM**3    
         RETURN
-        ELSEIF (NOPTE1.EQ.46) THEN   !!!!!! Oslo KMF; including softpole
-          TFIN=TERMOSLO(BN-EGAM)       !Temperature independent PSF  
+        ELSEIF (NOPTE1.EQ.46) THEN   !!!!!! Oslo KMF; including softpole; TODO OUTDATED
+          TFIN=TCONST       !Temperature independent PSF  
           Q=0.
           DO I=1,NGIGE
            W=W0(I)*(EGAM**2+PI42*TFIN**2)/ER(I)**2
            QQ=FERMC*SIG(I)*W0(I)*W*ER(I)/(EGAM**2-ER(I)**2)**2
            Q=Q+QQ
           ENDDO
-          Q=Q+DIPEHI/(EGAM**DIPSUP)
-          SGAMMA=DIPELO*PIH*Q*EGAM**3    
+          Q=Q+PAR_E1(2)/(EGAM**PAR_E1(3))
+          SGAMMA=PAR_E1(1)*PIH*Q*EGAM**3    
         RETURN
         ELSEIF (NOPTE1.EQ.47) THEN   !!!!!! Oslo KMF; including softpole
-          TFIN=TERMOSLO(EINI-EGAM)     !!!! const below Etr   
+          TFIN=TERMOSLO(EINI-EGAM)     !!!! const below PAR_E1(1)   
           Q=0.
           EGAMOLD=EGAM
-          IF (EGAM.LT.ETR) EGAM=ETR
+          IF (EGAM.LT.PAR_E1(1)) EGAM=PAR_E1(1)
           DO I=1,NGIGE
            W=W0(I)*(EGAM**2+PI42*TFIN**2)/ER(I)**2
            QQ=FERMC*SIG(I)*W0(I)*W*ER(I)/(EGAM**2-ER(I)**2)**2
            Q=Q+QQ
           ENDDO
-          Q=Q+DIPEHI/(EGAM**DIPSUP)
+          Q=Q+PAR_E1(2)/(EGAM**PAR_E1(3))
           EGAM=EGAMOLD
-          SGAMMA=DIPELO*PIH*Q*EGAM**3    
+          SGAMMA=PAR_E1(1)*PIH*Q*EGAM**3    
         RETURN
         ELSEIF (NOPTE1.EQ.48) THEN   !!!!!! Oslo KMF - T independent; including softpole
-          TFIN=TERMOSLO(BN-EGAM)     !!!! const below Etr   
+          TFIN=TERMOSLO(BN-EGAM)     !!!! const below PAR_E1(1)   
           Q=0.
           EGAMOLD=EGAM
-          IF (EGAM.LT.ETR) EGAM=ETR
+          IF (EGAM.LT.PAR_E1(1)) EGAM=PAR_E1(1)
           DO I=1,NGIGE
            W=W0(I)*(EGAM**2+PI42*TFIN**2)/ER(I)**2
            QQ=FERMC*SIG(I)*W0(I)*W*ER(I)/(EGAM**2-ER(I)**2)**2
            Q=Q+QQ
           ENDDO
-          Q=Q+DIPEHI/(EGAM**DIPSUP)
+          Q=Q+PAR_E1(2)/(EGAM**PAR_E1(3))
           EGAM=EGAMOLD
-          SGAMMA=DIPELO*PIH*Q*EGAM**3    
+          SGAMMA=PAR_E1(1)*PIH*Q*EGAM**3    
         RETURN
         ELSEIF (NOPTE1.EQ.49) THEN   !!!!!! Oslo KMF - T independent; including softpole
-          TFIN=TERMOSLO(BN-EGAM)     !!!! zero below Etr   
+          TFIN=TERMOSLO(BN-EGAM)     !!!! zero below PAR_E1(1)   
           Q=0.
           DO I=1,NGIGE
            W=W0(I)*(EGAM**2+PI42*TFIN**2)/ER(I)**2
            QQ=FERMC*SIG(I)*W0(I)*W*ER(I)/(EGAM**2-ER(I)**2)**2
            Q=Q+QQ
           ENDDO
-          Q=Q+DIPEHI/(EGAM**DIPSUP)
-          IF (EGAM.LT.ETR) Q=0.0
-          SGAMMA=DIPELO*PIH*Q*EGAM**3    
+          Q=Q+PAR_E1(2)/(EGAM**PAR_E1(3))
+          IF (EGAM.LT.PAR_E1(1)) Q=0.0
+          SGAMMA=PAR_E1(1)*PIH*Q*EGAM**3    
         RETURN
         ELSEIF (NOPTE1.EQ.54) THEN   !!!!!! Oslo KMF - T constant, f_py in M1
           Q=0.
           DO I=1,NGIGE
            W=(EGAM**2+PI42*EK0**2)
-           QQ=FERMC*SIG(I)*EGAM*W0(I)**2*W/ER(I)/(EGAM**2-ER(I)**2)**2
+           QQ=FERMC*SIG(I)*W0(I)**2*W/ER(I)/(EGAM**2-ER(I)**2)**2
            Q=Q+QQ
           ENDDO
           SGAMMA=PIH*Q*EGAM**3    
@@ -1330,39 +1491,50 @@ real,dimension(1:22)::            enrgfin
           Q=SIG(1)*(EGAM*W0(1)**2/((EGAM**2-ER(1)**2)**2+(EGAM*W0(1))**2))
           DO I=2,NGIGE
            W=(EGAM**2+PI42*EK0**2)
-           QQ=FERMC*SIG(I)*EGAM*W0(I)**2*W/ER(I)/(EGAM**2-ER(I)**2)**2
+           QQ=FERMC*SIG(I)*W0(I)**2*W/ER(I)/(EGAM**2-ER(I)**2)**2
            Q=Q+QQ
           ENDDO
           SGAMMA=PIH*Q*EGAM**3    
         RETURN
-
-        ELSEIF (NOPTE1.EQ.78) THEN   !!!!!! Voinov Mo - no LLR
-!          TFIN=0.015        
-          TFIN=DIPSUP        
+        ELSEIF (NOPTE1.EQ.79) THEN   !!!!!! Voinov Mo LLR; KMF with constant T and 1st lorentzian resonance, equal to 55 with diferently defined parameters on input (uses kappa)
+          TFIN=TCONST        
           Q=0.
-          DO I=1,NGIGE
-           W=W0(I)*(EGAM**2+PI42*TFIN**2)/ER(I)**2
-           QQ=FERMC*SIG(I)*W0(I)*W*ER(I)/(EGAM**2-ER(I)**2)**2
-           Q=Q+QQ
-          ENDDO
-          SGAMMA=DIPELO*PIH*Q*EGAM**3    
-        RETURN
-        ELSEIF (NOPTE1.EQ.79) THEN   !!!!!! Voinov Mo LLR
-!          TFIN=0.015        
-          TFIN=DIPSUP        
-          Q=0.
-          DO I=1,1                   ! Lorentzian LLR
-            QQ=SIG(I)*(EGAM*W0(I)**2/((EGAM**2-ER(I)**2)**2+(EGAM*W0(I))**2))
-            Q=Q+QQ/DIPELO
-          ENDDO
+          Q=SIG(1)*(EGAM*W0(1)**2/((EGAM**2-ER(1)**2)**2+(EGAM*W0(1))**2))/PAR_E1(1)  ! Lorentzian LLR
           DO I=2,NGIGE
            W=W0(I)*(EGAM**2+PI42*TFIN**2)/ER(I)**2
            QQ=FERMC*SIG(I)*W0(I)*W*ER(I)/(EGAM**2-ER(I)**2)**2
            Q=Q+QQ
           ENDDO
-          SGAMMA=DIPELO*PIH*Q*EGAM**3    
+          SGAMMA=PAR_E1(1)*PIH*Q*EGAM**3    
         RETURN
-!
+        ELSEIF (NOPTE1.EQ.83) THEN  ! EGLO(3) with constant T + Lorentzian pygmy (Oslo - actinides)
+          TFIN=TCONST
+          Q=SIG(1)*(EGAM*W0(1)**2/((EGAM**2-ER(1)**2)**2+(EGAM*W0(1))**2)) ! pygmy
+          DO I=2,NGIGE
+            WPHEN=EK0+(1.-EK0)*(EGAM-EGZERO)/(ER(I)-EGZERO)
+            W=WPHEN*W0(I)*(EGAM**2+PI42*TFIN**2)/ER(I)**2
+            WPHENZ=EK0-(1.-EK0)*EGZERO/(ER(I)-EGZERO)
+            SLIM=WPHENZ*FERMC*PI42*TFIN**2*W0(I)/ER(I)**5
+            QQ=SIG(I)*W0(I)*(SLIM+EGAM*W/((EGAM**2-ER(I)**2)**2+(EGAM*W)**2))
+            Q=Q+QQ
+          ENDDO
+          SGAMMA=PAR_E1(1)*PIH*Q*EGAM**3
+          SFCEE1=SGAMMA
+          RETURN
+        ELSEIF (NOPTE1.EQ.25) THEN    !Pure Chrien+Kopecky model but Toshihiko's T
+          TFIN=TERM(BN-EGAM)
+          Q=0.
+          DO I=1,NGIGE
+            W=W0(I)*(EGAM**2+PI42*TFIN**2)/ER(I)**2
+          !     ^ .......... energy and temperature dependent width
+            SLIM=FERMC*PI42*TFIN**2*W0(I)/ER(I)**5
+          !     ^ ...... the non-zero limit at Egam-->0
+            QQ=SIG(I)*W0(I)*(SLIM+EGAM*W/((EGAM**2-ER(I)**2)**2+(EGAM*W)**2))
+            Q=Q+QQ
+          ENDDO
+          SGAMMA=PIH*Q*EGAM**3
+          SFCEE1=SGAMMA
+          RETURN
         ELSEIF (NOPTE1.EQ.28) THEN  !Hokus - pokus
           SGAMMA=DEG*EGAM**8
           RETURN
@@ -1386,13 +1558,13 @@ real,dimension(1:22)::            enrgfin
           SFCEM1=SGAMMA
           IF (ITYP.EQ.3) RETURN
         ELSEIF (NOPTM1.EQ.3) THEN   ! Scissors mode is build up only on states
-          Q=0.                      ! with Efinal lower than Etr
+          Q=0.                      ! with Efinal lower than PAR_M1(1)
           DO I=2,NGIGM
             QQ=SIGM(I)*EGAM*WM0(I)**2/((EGAM**2-ERM(I)**2)**2+(EGAM*WM0(I))**2)
             Q=Q+QQ
           ENDDO
           Efinal=Eini-Egam
-          IF (Efinal.LE.Etr) THEN
+          IF (Efinal.LE.PAR_M1(1)) THEN
             QQ=SIGM(1)*EGAM*WM0(1)**2/((EGAM**2-ERM(1)**2)**2+(EGAM*WM0(1))**2)
             Q=Q+QQ
           ENDIF
@@ -1400,12 +1572,12 @@ real,dimension(1:22)::            enrgfin
           SFCEM1=SGAMMA
           IF (ITYP.EQ.3) RETURN
         ELSEIF (NOPTM1.EQ.4) THEN   ! Classical Lorentzian on backgroung
-          Q=0.                      ! which is described by SP up to Etr
+          Q=0.                      ! which is described by SP up to PAR_M1(1)
           DO I=1,NGIGM
             QQ=SIGM(I)*EGAM*WM0(I)**2/((EGAM**2-ERM(I)**2)**2+(EGAM*WM0(I))**2)
             Q=Q+QQ
           ENDDO
-          IF (EGAM.LE.Etr) THEN
+          IF (EGAM.LE.PAR_M1(1)) THEN
             SGAMMA=(PIH*Q+DMG)*EGAM**3
           ELSE
             SGAMMA=PIH*Q*EGAM**3
@@ -1413,13 +1585,13 @@ real,dimension(1:22)::            enrgfin
           SFCEM1=SGAMMA
           IF (ITYP.EQ.3) RETURN
         ELSEIF (NOPTM1.EQ.5) THEN  ! SP on states
-          Q=0.                     ! with Efinal lower than Etr
+          Q=0.                     ! with Efinal lower than PAR_M1(1)
           DO I=1,NGIGM
             QQ=SIGM(I)*EGAM*WM0(I)**2/((EGAM**2-ERM(I)**2)**2+(EGAM*WM0(I))**2)
             Q=Q+QQ
           ENDDO
           Efinal=EINI-EGAM
-          IF (Efinal.LE.Etr) THEN
+          IF (Efinal.LE.PAR_M1(1)) THEN
             SGAMMA=(PIH*Q+DMG)*EGAM**3
           ELSE
             SGAMMA=PIH*Q*EGAM**3
@@ -1432,7 +1604,7 @@ real,dimension(1:22)::            enrgfin
             QQ=SIGM(I)*EGAM*WM0(I)**2/((EGAM**2-ERM(I)**2)**2+(EGAM*WM0(I))**2)
             Q=Q+QQ
           ENDDO
-          SGAMMA=(PIH*Q+DMG*exp(-EGAM/Etr))*EGAM**3
+          SGAMMA=(PIH*Q+DMG*exp(-EGAM/PAR_M1(1)))*EGAM**3
           SFCEM1=SGAMMA
           IF (ITYP.EQ.3) RETURN
         ELSEIF (NOPTM1.EQ.7) THEN   ! Classical Lorentzian ...
@@ -1442,7 +1614,7 @@ real,dimension(1:22)::            enrgfin
             Q=Q+QQ
           ENDDO
           Efinal=EINI-EGAM
-          SGAMMA=(PIH*Q+DMG*exp(-Efinal/Etr))*EGAM**3
+          SGAMMA=(PIH*Q+DMG*exp(-Efinal/PAR_M1(1)))*EGAM**3
           SFCEM1=SGAMMA
           IF (ITYP.EQ.3) RETURN
 !
@@ -1460,14 +1632,20 @@ real,dimension(1:22)::            enrgfin
           SGAMMA=PIH*Q*EGAM**3
           SFCEM1=SGAMMA
           IF (ITYP.EQ.3) RETURN
-        ELSEIF (NOPTM1.EQ.11) THEN   ! Scissors mode is build up only on states
-          Q=0.                      ! with Efinal lower than Etr
+        ELSEIF (NOPTM1.EQ.11) THEN   ! Goriely tables
+          SGAMMA = APSF(EGAM,2)
+          SGAMMA = SGAMMA + PAR_M1(1) * EXP(-PAR_M1(2)*EGAM) *(1.0+PAR_M1(3)*EGAM**PAR_M1(4))
+          SGAMMA = SGAMMA * EGAM**3
+          SFCEM1=SGAMMA
+          IF (ITYP.EQ.3) RETURN
+        ELSEIF (NOPTM1.EQ.91) THEN   ! Scissors mode is build up only on states
+          Q=0.                      ! with Efinal lower than PAR_M1(1)
           DO I=2,NGIGM
             QQ=SIGM(I)*EGAM*WM0(I)**2/((EGAM**2-ERM(I)**2)**2+(EGAM*WM0(I))**2)
             Q=Q+QQ
           ENDDO
           Efinal=Eini-Egam
-          IF (Efinal.LE.Etr) THEN
+          IF (Efinal.LE.PAR_M1(1)) THEN
             QQ=SIGM(1)*EGAM*WM0(1)**2/((EGAM**2-ERM(1)**2)**2+(EGAM*WM0(1))**2)
             Q=Q+QQ
           ENDIF
@@ -1490,7 +1668,7 @@ real,dimension(1:22)::            enrgfin
         ELSEIF (NOPTM1.EQ.14) THEN   ! Width of Scissors resonance depends on Efin
           Efinal=Eini-Egam           ! => total strength increases
           WM0SC=WM0(1)
-          WM0(1)=WM0(1)+Etr*Efinal
+          WM0(1)=WM0(1)+PAR_M1(1)*Efinal
           Q=0.
           DO I=1,NGIGM
             QQ=SIGM(I)*EGAM*WM0(I)**2/((EGAM**2-ERM(I)**2)**2+(EGAM*WM0(I))**2)
@@ -1503,7 +1681,7 @@ real,dimension(1:22)::            enrgfin
         ELSEIF (NOPTM1.EQ.15) THEN   ! Width of Scissors resonance depends on Efin
           Efinal=Eini-Egam           ! Total strength should remain 
           WM0SC=WM0(1)
-          WM0(1)=WM0(1)+Etr*Efinal
+          WM0(1)=WM0(1)+PAR_M1(1)*Efinal
           SIGMSC=SIGM(1)
           SIGM(1)=WM0SC*SIGMSC/WM0(1)
           Q=0.
@@ -1519,7 +1697,7 @@ real,dimension(1:22)::            enrgfin
         ELSEIF (NOPTM1.EQ.16) THEN   ! cross section of Scissors resonance depends on Efin
           Efinal=Eini-Egam           
           SIGMSC=SIGM(1)
-          SIGM(1)=SIGM(1)+Etr*Efinal
+          SIGM(1)=SIGM(1)+PAR_M1(1)*Efinal
           Q=0.
           DO I=1,NGIGM
             QQ=SIGM(I)*EGAM*WM0(I)**2/((EGAM**2-ERM(I)**2)**2+(EGAM*WM0(I))**2)
@@ -1536,7 +1714,7 @@ real,dimension(1:22)::            enrgfin
             QQ=SIGM(I)*EGAM*WM0(I)**2/((EGAM**2-ERM(I)**2)**2+(EGAM*WM0(I))**2)
             Q=Q+QQ
           ENDDO
-          SGAMMA=DIPELO*PIH*Q*EGAM**3
+          SGAMMA=PAR_M1(1)*PIH*Q*EGAM**3
           SFCEM1=SGAMMA
           IF (ITYP.EQ.3) RETURN
         ELSEIF (NOPTM1.EQ.22) THEN   ! Oslo - factor k + softpole
@@ -1545,41 +1723,41 @@ real,dimension(1:22)::            enrgfin
             QQ=SIGM(I)*EGAM*WM0(I)**2/((EGAM**2-ERM(I)**2)**2+(EGAM*WM0(I))**2)
             Q=Q+QQ
           ENDDO
-          Q=Q+DIPEHI/(EGAM**DIPSUP)
-          SGAMMA=DIPELO*PIH*Q*EGAM**3
+          Q=Q+PAR_M1(2)/(EGAM**PAR_M1(3))
+          SGAMMA=PAR_M1(1)*PIH*Q*EGAM**3
           SFCEM1=SGAMMA
           IF (ITYP.EQ.3) RETURN
-        ELSEIF (NOPTM1.EQ.23) THEN   ! Oslo - factor k + softpole with a const below Etr
+        ELSEIF (NOPTM1.EQ.23) THEN   ! Oslo - factor k + softpole with a const below PAR_M1(1)
           Q=0.
           EGAMOLD=EGAM
-          IF (EGAM.LT.ETR) EGAM=ETR
-          DO I=1,NGIGM
+          IF (EGAM.LT.PAR_M1(1)) EGAM=PAR_M1(1)
+          Q=SIGM(1)*EXP(-WM0(1)*(EGAM-ERM(1)))
+          DO I=2,NGIGM
             QQ=SIGM(I)*EGAM*WM0(I)**2/((EGAM**2-ERM(I)**2)**2+(EGAM*WM0(I))**2)
             Q=Q+QQ
           ENDDO
-          Q=Q+DIPEHI/(EGAM**DIPSUP)
           EGAM=EGAMOLD
-          SGAMMA=DIPELO*PIH*Q*EGAM**3
+          SGAMMA=PIH*Q*EGAM**3
           SFCEM1=SGAMMA
           IF (ITYP.EQ.3) RETURN
         ELSEIF (NOPTM1.EQ.24) THEN   ! SP - factor k + softpole 
           Q=0.
           EGAMOLD=EGAM
-          IF (EGAM.LT.ETR) EGAM=ETR
-          Q=Q+DIPEHI/(EGAM**DIPSUP)
+          IF (EGAM.LT.PAR_M1(1)) EGAM=PAR_M1(1)
+          Q=Q+PAR_M1(2)/(EGAM**PAR_M1(3))
           EGAM=EGAMOLD
-          SGAMMA=DIPELO*(PIH*Q+DMG)*EGAM**3
+          SGAMMA=PAR_M1(1)*(PIH*Q+DMG)*EGAM**3
           SFCEM1=SGAMMA
           IF (ITYP.EQ.3) RETURN
-        ELSEIF (NOPTM1.EQ.25) THEN   ! Oslo - factor k + softpole with zero below Etr
+        ELSEIF (NOPTM1.EQ.25) THEN   ! Oslo - factor k + softpole with zero below PAR_M1(1)
           Q=0.
           DO I=1,NGIGM
             QQ=SIGM(I)*EGAM*WM0(I)**2/((EGAM**2-ERM(I)**2)**2+(EGAM*WM0(I))**2)
             Q=Q+QQ
           ENDDO
-          Q=Q+DIPEHI/(EGAM**DIPSUP)
-          IF (EGAM.LT.ETR) Q=0
-          SGAMMA=DIPELO*PIH*Q*EGAM**3
+          Q=Q+PAR_M1(2)/(EGAM**PAR_M1(3))
+          IF (EGAM.LT.PAR_M1(1)) Q=0
+          SGAMMA=PAR_M1(1)*PIH*Q*EGAM**3
           SFCEM1=SGAMMA
           IF (ITYP.EQ.3) RETURN
 
@@ -1587,13 +1765,13 @@ real,dimension(1:22)::            enrgfin
           Q=0.
           DO I=1,1
             QQ=SIGM(I)*EGAM*WM0(I)**2/((EGAM**2-ERM(I)**2)**2+(EGAM*WM0(I))**2)
-            Q=Q+QQ/DIPELO
+            Q=Q+QQ/PAR_M1(1)
           ENDDO
           DO I=2,NGIGM
             QQ=SIGM(I)*EGAM*WM0(I)**2/((EGAM**2-ERM(I)**2)**2+(EGAM*WM0(I))**2)
             Q=Q+QQ
           ENDDO
-          SGAMMA=DIPELO*PIH*Q*EGAM**3
+          SGAMMA=PAR_M1(1)*PIH*Q*EGAM**3
           SFCEM1=SGAMMA
           IF (ITYP.EQ.3) RETURN
 
@@ -1604,8 +1782,12 @@ real,dimension(1:22)::            enrgfin
       IF ((ITYP.EQ.2).OR.(ITYP.EQ.4)) THEN
         IF (NOPTE2.EQ.0) THEN
           SGAMMA=SGAMMA+QEL*EGAM**5
-            SFCEE2=SGAMMA-SFCEM1
-        ELSE
+          SFCEE2=SGAMMA-SFCEM1
+        ELSEIF (NOPTE2.EQ.11) THEN  ! Goriely tables
+          SGAMMA = SGAMMA + APSF(EGAM,3)*EGAM**5
+          SFCEE2=SGAMMA-SFCEM1
+          RETURN
+        ELSE !NOTE THIS IS HERE BASICLY FOR NOPTE2.EQ.1
           Q=0.
           DO I=1,NGIGE2
             QQ=(SIGE(I)*WE0(I)**2)/(EGAM*((EGAM**2-ERE(I)**2)**2+(EGAM*WE0(I))**2))
@@ -2056,7 +2238,7 @@ SUBROUTINE WRITELVLSCH(IGLOB,NBIN,ITID,IFLAG,NTOTAL,LEVCON)
 !   This subroutin writes the level scheme, see code
 character(12)::                       OUTNAME
 integer::                             ILOCAL,IGLOB,NBIN,ITID,IFLAG,NTOTAL
-integer,dimension(:,:,:),allocatable:: LEVCON 
+integer,dimension(:,:,:),allocatable:: LEVCON
 !
       OUTNAME='LVL_??.DAT'
       WRITE(OUTNAME(5:6),'(I2)') IGLOB
@@ -2064,7 +2246,7 @@ integer,dimension(:,:,:),allocatable:: LEVCON
       OPEN(UNIT=(IGLOB+10),FILE=OUTNAME)
       WRITE((IGLOB+10),*) 'NTOTAL =',NTOTAL,' IFLAG =',IFLAG
       DO ILOCAL=1,NBIN
-        WRITE((IGLOB+10),*) ILOCAL,(LEVCON(ILOCAL,KLOCAL,1),KLOCAL=0,49)
+        WRITE((IGLOB+10),*) ILOCAL,(LEVCON(ILOCAL,KLOCAL,0),KLOCAL=0,49)
       ENDDO
       RETURN
 END SUBROUTINE WRITELVLSCH

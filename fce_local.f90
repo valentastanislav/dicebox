@@ -26,7 +26,8 @@ character(len=1) :: bar, back, mezera
 bar = '='
 mezera = '-'
       ! print the percentage and the bar
-      write(6,'(1x,1a11,1i4,2x,1i3,1a1,2x,1a1,256a1,1a1)', advance='no') 'Realizace #',i,100*j/celek,'%','[', (bar, k =1,50*j/celek),(mezera, k=(50*j/celek+1),50),']'
+      write(6,'(1x,1a11,1i4,2x,1i3,1a1,2x,1a1,256a1,1a1)', advance='no') 'Realizace #',i,100*j/celek,'%','[', &
+      (bar, k =1,50*j/celek),(mezera, k=(50*j/celek+1),50),']'
 END SUBROUTINE print_bar
 !***********************************************************************
 SUBROUTINE delete_bar(j,celek)
@@ -37,10 +38,10 @@ back = char(8)
       write(6,'(256a1)', advance='no') (back, k =1,(50)+26)
 END SUBROUTINE delete_bar
 !***********************************************************************
-SUBROUTINE WRITEMTRX(OUTNAME,MATRIX,SLOUPCE,RADKY)        !should be OK
+SUBROUTINE WRITEMTRX(OUTNAME,MATRIX,SLOUPCE,NSREAL)        !should be OK
 INTEGER::                             ILOCAL,JLOCAL
 character(12)::                       OUTNAME
-integer::                             SLOUPCE,RADKY
+integer::                             SLOUPCE,NSREAL
 integer,dimension(:,:),allocatable::  MATRIX
 !
       if (.not.allocated(MATRIX)) then
@@ -48,30 +49,31 @@ integer,dimension(:,:),allocatable::  MATRIX
       endif 
       OPEN(UNIT=4,FILE=OUTNAME,ACCESS='SEQUENTIAL',STATUS='OLD')
   102 FORMAT(I12,I12,I12,I12)
-      DO ILOCAL=1,RADKY
+      DO ILOCAL=1,NSREAL
         WRITE(4,*) (MATRIX(JLOCAL,ILOCAL),JLOCAL=1,SLOUPCE)
       END DO
       CLOSE(4)
       RETURN
 END SUBROUTINE WRITEMTRX
 !***********************************************************************
-SUBROUTINE CNTRLMTRX(MATRIX,SLOUPCE,RADKY)        !should be OK
+SUBROUTINE CNTRLMTRX(MATRIX,SLOUPCE,NSREAL)        !should be OK
 !   Let's generate the 4xN matrix of random seeds
 INTEGER::                             NEXTSTEP,J,I,K
 REAL::                                dummy
-integer::                             SLOUPCE,RADKY
+integer::                             SLOUPCE,NSREAL
 integer,dimension(:,:),allocatable::  MATRIX
 !
 !      if (.not.allocated(MATRIX)) then
-!       allocate(MATRIX(1:SLOUPCE,1:RADKY))
+!       allocate(MATRIX(1:SLOUPCE,1:NSREAL))
 !      endif 
       DO I=1,SLOUPCE
         NEXTSTEP=MATRIX(I,1)
-        DO J=2,RADKY
+        DO J=2,NSREAL
           DO K=1,100  
             dummy=RAN0(NEXTSTEP)
           ENDDO
-          MATRIX(I,J)=NEXTSTEP
+          MATRIX(I,J)=NEXTSTEP-J
+          IF (MATRIX(I,J).LE.0) MATRIX(I,J) = MATRIX(I,J) + 2 * J 
         ENDDO
       ENDDO
       RETURN

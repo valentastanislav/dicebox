@@ -6,11 +6,12 @@ use lokalni_fce
 use spolecne
 implicit none
 
-integer::                             NEVENTS,NREAL,NSUB,NDDD,NOPTFL,NLINc,ipinc,nfilev,NSTEPS,NENT,NENK,&
-                                      KpopGS,ISWWR,ISWBN,ISWEL,ISWSP,ISWPA,ISWIC,ISWMX,ISWGT,NOPTCS,&
-                                      N_MSC_FS,MIN_MULTIPLICITA,MAX_MULTIPLICITA
+integer::                             NEVENTS,NREAL,NSUB,NDDD,NOPTFL,NLINc,ipinc,nfilev,NSTEPS,NENT,NENK,NEN_IPF,&
+                                      KpopGS,ISWWR,ISWBN,ISWEL,ISWSP,ISWPA,ISWIC,ISWMX,ISWGT,ISWLS,NOPTCS,&
+                                      N_MSC_FS,MIN_MULTIPLICITA,MAX_MULTIPLICITA,TRGT_PI
 
-real::                                eall,EIN,EFI,ecrit,xrayk,xrayl,max_spin,factnrm,SUMNO,BIN_WIDTH
+real::                                eall,EIN,EFI,ecrit,xrayk,xrayl,max_spin,factnrm,SUMNO,BIN_WIDTH,&
+                                      D0,TRGT_SPIN
 
 integer, dimension(1:99)::            ilowip
 integer, dimension(0:49,0:1)::        levdis
@@ -19,11 +20,11 @@ integer,dimension(:,:),allocatable::  isbspin
 
 real,    dimension(:),allocatable::   MSC_FS
 real,    dimension(1:2)::             CAPFR,spinc
-real,    dimension(1:100)::           elent,elenk
+real,    dimension(1:100)::           elent,elenk,ELEN_IPF
 real,    dimension(1:99)::            elowlev,elowsp
-real,    dimension(1:99,0:20)::       ponv,ponvk !TODO somehow smart determine the maximum number of decays in DIS and make these allocatable
+real,    dimension(1:99,0:20)::       p_conv,p_conv_K,p_conv_IPF !TODO somehow smart determine the maximum number of decays in DIS and make these allocatable
 real,    dimension(1:99,1:20)::       deltx
-real,    dimension(0:1,1:5,1:100)::    CONVt,CONVk
+real,    dimension(0:1,1:5,1:100)::    CONVt,CONVk,CONV_IPF
 
 contains
 !***********************************************************************
@@ -35,7 +36,7 @@ character(80)::         NAME
 logical::               lopopgs
 integer,dimension(:,:),allocatable:: KONTROLMATRIX
 INTEGER::               I,J,K,NMU,ipfi,ipar,control
-REAL::                  enrg,spfi,enrgf,desp,dlt,alphak,SPACRES,dummy,FSPAC
+REAL::                  enrg,spfi,enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,FSPAC,corrAlpha,corrDelta
       OPEN (UNIT=5,FILE=NAME,STATUS='OLD')
 !     User's alphanumeric titles:
       READ (5,100) TITLE1
@@ -44,7 +45,8 @@ REAL::                  enrg,spfi,enrgf,desp,dlt,alphak,SPACRES,dummy,FSPAC
   100 FORMAT (A80)
 !     The regime of run:
       READ (5,*)
-      READ (5,*) ISWWR,ISWBN,ISWEL,ISWSP,ISWPA,ISWIC,ISWMX,ISWGT
+      READ (5,*) ISWWR,ISWBN,ISWEL,ISWSP,ISWPA,ISWIC,ISWMX,ISWGT,ISWLS
+!TODO Milan's    ISWWR,ISWBN,ISWEL,ISWSP,ISWPA,ISWIC,ISWMX,ISWWI,ISWLS
       READ (5,*)
       Read (5,*) Nreal, NEVENTS, NSUB
       if (.not.allocated(KONTROLMATRIX)) then
@@ -56,10 +58,12 @@ REAL::                  enrg,spfi,enrgf,desp,dlt,alphak,SPACRES,dummy,FSPAC
       READ (5,*) NOPTFL,NOPTE1,NOPTM1,NOPTE2,NOPTDE,LMODE,LDENP
       READ (5,*)
       READ (5,*) N_MSC_FS, BIN_WIDTH
+      if (N_MSC_FS.GE.1) then
       allocate (MSC_FS(1:N_MSC_FS))
       DO I=1,N_MSC_FS
         READ (5,*) MSC_FS(I)
       ENDDO
+      endif
       MIN_MULTIPLICITA=1
       MAX_MULTIPLICITA=7
 !
@@ -71,14 +75,9 @@ REAL::                  enrg,spfi,enrgf,desp,dlt,alphak,SPACRES,dummy,FSPAC
         READ (5,*) ER(I),W0(I),SIG(I)
       ENDDO
       READ (5,*)
-      Etr=0.
       READ (5,*) NGIGM
       DO I=1, NGIGM
-       IF ((NOPTM1.GE.3).AND.(I.EQ.1)) THEN
-        READ (5,*) ERM(I),WM0(I),SIGM(I),ETR
-       ELSE
         READ (5,*) ERM(I),WM0(I),SIGM(I)
-       ENDIF
       ENDDO
       READ (5,*)
       READ (5,*) NGIGE2
@@ -90,13 +89,15 @@ REAL::                  enrg,spfi,enrgf,desp,dlt,alphak,SPACRES,dummy,FSPAC
       READ (5,*)
       READ (5,*) DEG,DMG,QEL
       READ (5,*)
-      READ (5,*) FERMC
+      READ (5,*) FERMC, TCONST
       READ (5,*)
       READ (5,*) EK0,EGZERO
       READ (5,*)
-      READ (5,*) DIPELO,DIPEHI,DIPSUP
-        DIPSLP=(1.0-DIPSUP)/(DIPEHI-DIPELO)
-        DIPZER=1.0-DIPSLP*DIPEHI
+      READ (5,*) (PAR_E1(I),I=1,3) ! DIPELO,DIPEHI,DIPSUP
+        DIPSLP=(1.0-PAR_E1(3))/(PAR_E1(2)-PAR_E1(1))
+        DIPZER=1.0-DIPSLP*PAR_E1(2)
+      READ (5,*)
+      READ (5,*) (PAR_M1(I),I=1,4)
 !
 !     Data needed for level density formulas:
 !
@@ -112,7 +113,7 @@ REAL::                  enrg,spfi,enrgf,desp,dlt,alphak,SPACRES,dummy,FSPAC
 !     Data relating to the (thermal) neutron capturing state:
 !
       READ (5,*)
-      READ (5,*) BN,SPINc(1),IPINC
+      READ (5,*) BN,SPINc(1),IPINC,TRGT_SPIN,TRGT_PI
       NOPTCS=1
       NLINc=1
       CAPFR(1)=1.
@@ -141,6 +142,9 @@ REAL::                  enrg,spfi,enrgf,desp,dlt,alphak,SPACRES,dummy,FSPAC
       READ (5,*) NENK
       READ (5,*) (ELENK(K),K=1,NENK)
       READ (5,*) (((CONVK(I,J,K),I=0,1),J=1,NMU),K=1,NENK)
+      READ (5,*) NEN_IPF
+      READ (5,*) (ELEN_IPF(K),K=1,NEN_IPF)
+      READ (5,*) (((CONV_IPF(I,J,K),I=0,1),J=1,3),K=1,NEN_IPF)
 !
 !     Data related to the discrete levels (J, pi, Eexc, primary intensities
 !     and branchings):
@@ -166,6 +170,11 @@ REAL::                  enrg,spfi,enrgf,desp,dlt,alphak,SPACRES,dummy,FSPAC
       endif  
       DO i=1,numlev
        READ (5,*) enrg,spfi,ipfi,denum(i)
+       write(*,*) 'reading lvl # ',i,' at energy ',enrg
+       IF((ipfi.NE.0).AND.(ipfi.NE.1)) THEN
+         WRITE(*,*) 'parity can be either 0 (+) or 1 (-)'
+         STOP
+       ENDIF
        ndis(ISUBSC(spfi),ipfi)=ndis(ISUBSC(spfi),ipfi)+1
        endis(ndis(ISUBSC(spfi),ipfi),ISUBSC(spfi),ipfi)=enrg
        dekod(ndis(ISUBSC(spfi),ipfi),ISUBSC(spfi),ipfi)=i
@@ -173,6 +182,10 @@ REAL::                  enrg,spfi,enrgf,desp,dlt,alphak,SPACRES,dummy,FSPAC
         DO k=1,denum(i)
 !         write(*,*) i,k,enrg
          READ (5,*) enrgf,sal(i,k),errsal(i,k),desp,ipar,dlt,alpha(i,k)
+         IF((ipar.NE.0).AND.(ipar.NE.1)) THEN
+           WRITE(*,*) 'parity can be either 0 (+) or 1 (-)'
+           STOP
+         ENDIF
          control=0
          DO j=1,ndis(ISUBSC(desp),ipar)
            IF(elowlev(dekod(j,ISUBSC(desp),ipar)).NE.enrgf) control=control+1
@@ -189,9 +202,11 @@ REAL::                  enrg,spfi,enrgf,desp,dlt,alphak,SPACRES,dummy,FSPAC
             deltx(i,k)=dlt
             if (alpha(i,k).LE.1e-6) alpha(i,k)=ALPH_TOT(enrg,spfi,ipfi,enrgf,desp,ipar,dlt**2,nent,elent,convt)
             alphak=ALPH_TOT(enrg,spfi,ipfi,enrgf,desp,ipar,dlt**2,nenk,elenk,convk)
+            alphaIPF=ALPH_TOT(enrg,spfi,ipfi,enrgf,desp,ipar,dlt**2,NEN_IPF,ELEN_IPF,CONV_IPF)
             if (alphak.GT.alpha(i,k)) alphak=alpha(i,k)
-            ponv(i,k)=alpha(i,k)/(1+alpha(i,k))
-            ponvk(i,k)=alphak/(1+alphak)
+            p_conv(i,k)=alpha(i,k)/(1+alpha(i,k))
+            p_conv_K(i,k)=alphak/(1+alpha(i,k))
+            p_conv_IPF(i,k)=(alphaIPF+alphak)/(1+alpha(i,k))
            ENDIF
          ENDDO
         ENDDO
@@ -223,6 +238,42 @@ REAL::                  enrg,spfi,enrgf,desp,dlt,alphak,SPACRES,dummy,FSPAC
 !
       CLOSE (UNIT=5,STATUS='KEEP')
       WRITE(*,*) 'nddd ',nddd,' numlev ',numlev
+
+      IF ((NOPTDE.EQ.8).OR.(NOPTDE.EQ.9)) THEN
+        IF (MOD(INT(AMASS+0.25),2).EQ.0) THEN
+          IF (MOD(INT(ZNUM+0.25),2).EQ.0) THEN
+            WRITE(*,*) 'beware, LD model is going to use staggering!'
+          ENDIF
+        ENDIF
+      ENDIF
+!
+!     Tabulated level density (Kawano)
+!
+      IF (NOPTDE.EQ.12) THEN
+        NAME = "LDTAB_K.DAT"
+        OPEN (UNIT=5,FILE=NAME,STATUS='OLD')
+        READ(5,*) 
+        READ(5,*) NLD
+        READ(5,*) 
+        DO I = NLD, 1, -1
+          READ(5,*) TABENLD(I),DUMMY,(TABLD(I,J,0),J=0,9) 
+        ENDDO
+        DO I = 1, NLD
+          DO J = 0, 9
+            TABLD(I,J,0) = TABLD(I,J,0) / 2.0 ! Kawano gives total NLD (p-independent)
+            TABLD(I,J,1) = TABLD(I,J,0) 
+          ENDDO
+          DO J = 10, MAXJC
+            TABLD(I,J,0) = 0.0
+            TABLD(I,J,1) = 0.0            
+          ENDDO
+        ENDDO
+        CLOSE (UNIT=5,STATUS='KEEP')
+        IF (TABENLD(NLD).LT.BN) THEN
+          WRITE(*,*) 'tabulated LD does not span up to the initial state: ',TABENLD(NLD),' vs ',BN
+          STOP
+        ENDIF
+      ENDIF
 !
 !     Tabulated level density (Goriely)
 !
@@ -230,34 +281,116 @@ REAL::                  enrg,spfi,enrgf,desp,dlt,alphak,SPACRES,dummy,FSPAC
         NAME = "LDTAB.DAT"
         OPEN (UNIT=5,FILE=NAME,STATUS='OLD')
         READ(5,*) 
-        READ(5,*) NLD, SPACRES,spfi,ipfi
+        READ(5,*) NLD, SPACRES,spfi,ipfi,corrAlpha,corrDelta
         READ(5,*) 
         DO I = 1, NLD
-          READ(5,*) TABENLD(I),DUMMY,DUMMY,DUMMY,DUMMY,(TABLD(I,J,0),J=0,MAXJC) 
+          READ(5,*) TABENLD(I),DUMMY,DUMMY,DUMMY,DUMMY,(TABLD(I,J,0),J=0,MAXJC)
         ENDDO
+        READ(5,*) 
+        READ(5,*) 
         READ(5,*) 
         DO I = 1, NLD
           READ(5,*) TABENLD(I),DUMMY,DUMMY,DUMMY,DUMMY,(TABLD(I,J,1),J=0,MAXJC) 
         ENDDO
+        IF (TABENLD(NLD).LT.BN) THEN
+          WRITE(*,*) 'tabulated LD does not span up to the initial state: ',TABENLD(NLD),' vs ',BN
+          STOP
+        ENDIF
 !
 !     "Normalization to experimental level spacing" - spfi/ipfi needed
 !
-        IF (spfi.EQ.0.0) THEN
+        IF (spfi.EQ.0.0) THEN !matching the s-wave spacing for even-even target with gs spin 0
          FSPAC = (1.0 / SPACRES * 1e6) / DENSITY(BN,spfi+0.5,ipfi)
-        ELSE
+         write(*,*) 'using tabulated NLD matched to s-wave resonance spacing of ',SPACRES
+        ELSEIF (spfi.EQ.-1.0) THEN !constant renormalization by one common factor
+         write(*,*) 'using tabulated NLD with renormalization by one given factor of ',SPACRES
+         FSPAC = SPACRES
+        ELSEIF (spfi.EQ.-2.0) THEN !renormalization by Goriely PRC 78 064307 (2008): \rho(u,J,p)=\exp(alpha x \sqrt(U-delta)) * \rho(U-delta,J,p)
+         write(*,*) 'using tabulated NLD with renormalization by Goriely PRC 78 064307 (2008) from ',TABENLD(1),&
+         ' to ', TABENLD(NLD),' with alpha ',corrAlpha,' and delta ',corrDelta
+         FSPAC = 1
+        ELSE !matching the s-wave spacing for target with nonzero spin
          FSPAC = (1.0 / SPACRES * 1e6) /(DENSITY(BN,spfi-0.5,ipfi) + DENSITY(BN,spfi+0.5,ipfi))
+         write(*,*) 'using tabulated NLD matched to s-wave resonance spacing of ',SPACRES
         ENDIF
-        DO I = 1, NLD
+        DO I = 1, NLD !Standa's version
+         TABENLD(I)=TABENLD(I)+corrDelta
          DO J = 0, MAXJC
           DO K = 0, 1
-            TABLD(I,J,K) = TABLD(I,J,K) * FSPAC
+            if (corrAlpha.eq.0.0) then
+              TABLD(I,J,K) = TABLD(I,J,K) * FSPAC
+            else
+              TABLD(I,J,K) = TABLD(I,J,K) * FSPAC * exp(corrAlpha*sqrt(TABENLD(I)-corrDelta))
+            endif
           ENDDO
          ENDDO
         ENDDO
-        write(*,*) fspac
+        write(*,*) 'normalization of tabulated NLD done'
         CLOSE (UNIT=5,STATUS='KEEP')
       ENDIF
-! 
+
+      IF (TRGT_SPIN.EQ.0.0) THEN
+        D0=1e6/DENSITY(BN,TRGT_SPIN+0.5,TRGT_PI)
+      ELSE
+        D0=1e6/(DENSITY(BN,TRGT_SPIN-0.5,TRGT_PI) + DENSITY(BN,TRGT_SPIN+0.5,TRGT_PI))
+      ENDIF
+!
+!     Tabulated PSF
+!
+      IF ((NOPTE1.EQ.11).OR.(NOPTE1.EQ.50)) THEN
+        NAME = "PSFE1.DAT"
+        OPEN (UNIT=5,FILE=NAME,STATUS='OLD')
+        READ(5,*) 
+        READ(5,*) NPSF(1), dummy
+        READ(5,*)
+        TABPSF(1,0)=0.
+        DO I = 1, NPSF(1)
+          READ(5,*) TABENPSF(1,I),TABPSF(1,I)
+          TABPSF(1,I)=dummy*TABPSF(1,I)
+        ENDDO
+        CLOSE(5)
+        IF (TABENPSF(1,NPSF(1)).LT.BN) THEN
+          WRITE(*,*) 'tabulated E1 does not span up to the initial state: ',TABENPSF(1,NPSF(1)),' vs ',BN
+          STOP
+        ENDIF
+      ENDIF
+
+      IF (NOPTM1.EQ.11) THEN
+        NAME = "PSFM1.DAT"
+        OPEN (UNIT=5,FILE=NAME,STATUS='OLD')
+        READ(5,*) 
+        READ(5,*) NPSF(2), dummy
+        READ(5,*) 
+        TABPSF(2,0)=0.
+        DO I = 1, NPSF(2)
+          READ(5,*) TABENPSF(2,I),TABPSF(2,I)
+          TABPSF(2,I)=dummy*TABPSF(2,I)
+        ENDDO
+        CLOSE(5)
+        IF (TABENPSF(2,NPSF(2)).LT.BN) THEN
+          WRITE(*,*) 'tabulated M1 does not span up to the initial state: ',TABENPSF(2,NPSF(2)),' vs ',BN
+          STOP
+        ENDIF
+      ENDIF
+
+      IF (NOPTE2.EQ.11) THEN
+        NAME = "PSFE2.DAT"
+        OPEN (UNIT=5,FILE=NAME,STATUS='OLD')
+        READ(5,*) 
+        READ(5,*) NPSF(3), dummy
+        READ(5,*) 
+        TABPSF(1,0)=0.
+        DO I = 1, NPSF(3)
+          READ(5,*) TABENPSF(3,I),TABPSF(3,I)
+          TABPSF(3,I)=dummy*TABPSF(3,I)
+        ENDDO
+        CLOSE(5)
+        IF (TABENPSF(3,NPSF(3)).LT.BN) THEN
+          WRITE(*,*) 'tabulated E2 does not span up to the initial state: ',TABENPSF(3,NPSF(3)),' vs ',BN
+          STOP
+        ENDIF
+      ENDIF
+!
       DELTA=(BN-ECRIT)/FLOAT(NBIN)
       WRITE(*,*) ' Inputs have been successfully loaded.'
 
@@ -396,15 +529,12 @@ REAL,dimension(1:2)::                 SIMPL
 !
       IF (IREGI.EQ.0) THEN
         IF (MODE.NE.0) THEN
-            EIN=BN
-            Q=1.0
-          ELSE
-!          NLEV=LEVCON(IBIN,ISUBSC(SPIN),IPIN)-
-!     *         LEVCON(IBIN-1,ISUBSC(SPIN),IPIN)
-!          Q=1.-FLOAT(2*ILIN-1)/FLOAT(2*NLEV)
-!          EIN=BN-(FLOAT(IBIN)-Q)*DELTA
-          Q=0.5    !Fixed to the centre of the bin
-          EIN=EFI  
+          EIN=BN
+          Q=0.0
+        ELSE
+          NLEV=LEVCON(IBIN,ISUBSC(SPIN),IPIN)-LEVCON(IBIN-1,ISUBSC(SPIN),IPIN)
+          Q=1.-FLOAT(2*ILIN-1)/FLOAT(2*NLEV)
+          EIN=BN-(FLOAT(IBIN)-Q)*DELTA
         ENDIF
         IF (NOPTFL.GE.1) ISEED=SEEDS(MODE,SPIN,IPIN,ILIN,IBIN,LEVCON,IRCON,IRCONc) !originaly .EQ.
       ELSE
@@ -571,16 +701,15 @@ REAL,dimension(1:2)::                 SIMPL
 END SUBROUTINE WIDTHS_R
 !***********************************************************************      
 SUBROUTINE ONESTEP(MODE,IPIN,SPIN,IBIN,ILIN,TOTCON,STCON,GACON,ISCON,TOTDIS,STDIS,GADIS,ISDIS,IPFI,&
-SPFI,IBFI,ILFI,DMIX2,SIGN,IR,IRX,LEVCON,sall,U,IFLAG,EIN,EFI,IREGI,ponverze,ponverk,IRCON,IRCONc)
-!should be OK, changes EIN,EFI, outputs DMIX2,ponverze,ponverk,sign
+SPFI,IBFI,ILFI,DMIX2,SIGN,IR,IRX,LEVCON,sall,U,IFLAG,EIN,EFI,IREGI,IC_type,IRCON,IRCONc)
+!should be OK, changes EIN,EFI, outputs DMIX2,IC_type,sign
 !***********************************************************************
-REAL::                                SP,SPF,ALPHA,ALPHAK,SPAC,EG,Z,G1,G2,GSQ,Q1,dummy,RN,G
+REAL::                                SP,SPF,ALPHA,ALPHAK,ALPHAIPF,SPAC,EG,Z,G1,G2,GSQ,Q1,dummy,RN,G
 DOUBLE PRECISION::                    AUX0,DRN,GAC
-INTEGER::                             IPF,ISPF,ISEED,ISEEDEN,deaux,ISP,ISBS,IT,I,NL,IL,ITT,IT1,IT2
+INTEGER::                             IPF,ISPF,ISEED,ISEEDEN,deaux,ISP,ISBS,IT,I,NL,IL,ITT,IT1,IT2,NLEV1
 REAL,dimension(1:2)::                 SIMPL,GG
-logical::                             ponverze,ponverk
 real::                                U,SPIN,EIN,EFI,SPFI,DMIX2,SIGN
-integer::                             MODE,IPIN,IBIN,ILIN,IFLAG,IREGI,IPFI,IBFI,ILFI,IR,IRX
+integer::                             MODE,IPIN,IBIN,ILIN,IFLAG,IREGI,IPFI,IBFI,ILFI,IR,IRX,IC_type
 double precision,dimension(0:2,-2:2,0:1)::     GACON
 double precision,dimension(:,:,:,:),allocatable::  STCON
 double precision,dimension(0:2)::     TOTCON
@@ -592,7 +721,7 @@ integer,dimension(:),allocatable::    IRCONc,IRCON
 integer,dimension(:,:,:),allocatable::LEVCON
 real,dimension(:,:),allocatable::     sall
 integer,dimension(:,:,:,:),allocatable::ISDIS
-!globalni NBIN,BN,DELTA,NOPTFL,CORRI,Re2Res,Im2Res,ecrit,NENT,ELENT,CONVT,NENK,ELENK,CONVK,NDIS,dekod,delev,despin,deparity,deltx
+!globalni NBIN,BN,DELTA,NOPTFL,CORRI,Re2Res,Im2Res,ecrit,NENT,ELENT,CONVT,NENK,ELENK,CONVK,NEN_IPF,ELEN_IPF,CONV_IPF,NDIS,dekod,delev,despin,deparity,deltx
       IF (iregi.eq.2) GOTO 23
       SPAC=1./DENSITY(EIN,SPIN,IPIN)
       IF (SPAC.LE.0.0) SPAC=0.00001
@@ -654,8 +783,8 @@ integer,dimension(:,:,:,:),allocatable::ISDIS
 !     The appropriate ISEED is now fetched and IFLAG reset.
 !     The algorithm for finding ILFI can start.
 !
-!      EG=EIN-BN+(FLOAT(IBFI)-0.5)*DELTA
-      EG=(FLOAT(IBFI-IBIN))*DELTA	       !Energies between mid-bins
+      EG=EIN-BN+(FLOAT(IBFI)-0.5)*DELTA
+!      EG=(FLOAT(IBFI-IBIN))*DELTA	       !Energies between mid-bins
       NL=LEVCON(IBFI,ISUBSC(SPFI),IPFI)-LEVCON(IBFI-1,ISUBSC(SPFI),IPFI)
       AUX0=STCON(MODE,IBFI-1,ISBS,IPFI)
       Z=0.
@@ -692,11 +821,11 @@ integer,dimension(:,:,:,:),allocatable::ISDIS
 !
     9 ILFI=IL
 !
-!      NLEV1=LEVCON(IBFI,ISUBSC(SPFI),IPFI)-LEVCON(IBFI-1,ISUBSC(SPFI),IPFI)
-!      Q1=1.-FLOAT(2*ILFI-1)/FLOAT(2*NLEV1)
-      ISEEDEN=SEEDS(0,SPFI,IPFI,ILFI,IBFI,LEVCON,IRCON,IRCONc)
-      Q1=RAN0(ISEEDEN)
-      EFI=BN-(FLOAT(IBFI)-Q1)*DELTA  ! Energy of the final level random in bin
+      NLEV1=LEVCON(IBFI,ISUBSC(SPFI),IPFI)-LEVCON(IBFI-1,ISUBSC(SPFI),IPFI)
+      Q1=1.-FLOAT(2*ILFI-1)/FLOAT(2*NLEV1)
+!      ISEEDEN=SEEDS(0,SPFI,IPFI,ILFI,IBFI,LEVCON,IRCON,IRCONc)
+!      Q1=RAN0(ISEEDEN)   ! Energy of the final level random in bin
+      EFI=BN-(FLOAT(IBFI)-Q1)*DELTA
       IF (efi.le.ecrit) IREGI=2
 !
 !       delta**2 and conversion
@@ -724,15 +853,16 @@ integer,dimension(:,:,:,:),allocatable::ISDIS
       dummy=RAN0(IRX)
       ALPHA=ALPH_TOT(EIN,SPIN,IPIN,EFI,SPFI,IPFI,DMIX2,NENT,ELENT,CONVT)
       IF (dummy.GT.(ALPHA/(1+ALPHA))) THEN
-        ponverze=.FALSE.
-        ponverk=.FALSE.
+        IC_type=0
       ELSE
         ALPHAK=ALPH_TOT(EIN,SPIN,IPIN,EFI,SPFI,IPFI,DMIX2,NENK,ELENK,CONVK)
-        ponverze=.TRUE.
-        IF (dummy.LE.(ALPHAK/(1+ALPHAK))) THEN
-          ponverk=.TRUE.
+        ALPHAIPF=ALPH_TOT(EIN,SPIN,IPIN,EFI,SPFI,IPFI,DMIX2,NEN_IPF,ELEN_IPF,CONV_IPF)+ALPHAK
+        IF (dummy.LE.(ALPHAK/(1+ALPHA))) THEN
+          IC_type=1
+        ELSEIF (dummy.LE.(ALPHAIPF/(1+ALPHA))) THEN
+          IC_type=3
         ELSE
-          ponverk=.FALSE.
+          IC_type=2
         ENDIF
       ENDIF
       RETURN
@@ -822,15 +952,16 @@ integer,dimension(:,:,:,:),allocatable::ISDIS
       dummy=RAN0(IRX)
       ALPHA=ALPH_TOT(EIN,SPIN,IPIN,EFI,SPFI,IPFI,DMIX2,NENT,ELENT,CONVT)
       IF (dummy.GT.(ALPHA/(1+ALPHA))) THEN
-        ponverze=.FALSE.
-        ponverk=.FALSE.
+        IC_type=0
       ELSE
         ALPHAK=ALPH_TOT(EIN,SPIN,IPIN,EFI,SPFI,IPFI,DMIX2,NENK,ELENK,CONVK)
-        ponverze=.TRUE.
-        IF (dummy.LE.(ALPHAK/(1+ALPHAK))) THEN
-          ponverk=.TRUE.
+        ALPHAIPF=ALPH_TOT(EIN,SPIN,IPIN,EFI,SPFI,IPFI,DMIX2,NEN_IPF,ELEN_IPF,CONV_IPF)+ALPHAK
+        IF (dummy.LE.(ALPHAK/(1+ALPHA))) THEN
+          IC_type=1
+        ELSEIF (dummy.LE.(ALPHAIPF/(1+ALPHA))) THEN
+          IC_type=3
         ELSE
-          ponverk=.FALSE.
+          IC_type=2
         ENDIF
       ENDIF
       RETURN
@@ -862,19 +993,19 @@ integer,dimension(:,:,:,:),allocatable::ISDIS
       ENDIF
 !
 !     conversion
-!
-      if (ponv(deaux,i).gt.0.0) then
+!      IC_type !0 = gamma, 1 = K-shell, 2 = higher-shell, 3 = pair
+      if (p_conv(deaux,i).gt.0.0) then
          dummy=ran0(irx)
-         if (dummy.gt.ponv(deaux,i)) then
-           ponverze=.false.
-           ponverk=.false.
+         if (dummy.gt.p_conv(deaux,i)) then
+           IC_type=0
          else
-           ponverze=.true.
-           if (dummy.le.ponvk(deaux,i)) then
-             ponverk=.true.
+           if (dummy.le.p_conv_K(deaux,i)) then
+             IC_type=1
+           elseif (dummy.le.p_conv_IPF(deaux,i)) then
+             IC_type=3
            else
-             ponverk=.false.
-           endif
+             IC_type=2
+           endif  
          endif
       endif
       RETURN
@@ -948,7 +1079,7 @@ CHARACTER(1)::   cislosouboru,cislostavu
 CHARACTER(7)::   final_mult
 INTEGER::        I_MSC_FS,MULTIPLICITA,I,J,INR
 
-      if (.not.allocated(POCET_BINU)) then
+      if ((.not.allocated(POCET_BINU)).AND.(N_MSC_FS.GE.1)) then
         allocate(POCET_BINU(1:N_MSC_FS))
       endif
       if (.not.allocated(G_MULT)) then
@@ -1042,14 +1173,15 @@ INTEGER::        I_MSC_FS,MULTIPLICITA,I,J,INR
       RETURN
 END SUBROUTINE WR_SPECTRA
 !************************************************************************
-SUBROUTINE DO_IT (INR,ELQQ,SPQQ,DMQQ,IPQQ,ICQQ,GTOTQQ,NR_STEPS,ITID)
+SUBROUTINE DO_IT (INS,INR,ELQQ,SPQQ,DMQQ,IPQQ,ICQQ,WIQQ,NR_STEPS,ITID)
 !***********************************************************************
-integer:: INR,ITID
-real,dimension(:,:),allocatable:: ELQQ,SPQQ,DMQQ,GTOTQQ
+integer:: INS,INR,ITID
+real,dimension(:,:),allocatable:: ELQQ,SPQQ,DMQQ,WIQQ
 integer,dimension(:,:),allocatable:: IPQQ,ICQQ
 integer,dimension(:),allocatable::   NR_STEPS
 INTEGER::              IEV,J,REAL_MULT
-CHARACTER*3  EXT
+CHARACTER*3  EXTR,EXTS
+CHARACTER*4  EXT
 REAL,DIMENSION(:),allocatable::    E_G
 !
       if (.not.allocated(E_G)) then
@@ -1061,39 +1193,49 @@ REAL,DIMENSION(:),allocatable::    E_G
 !         IERR=1
          RETURN
       ENDIF
-      WRITE (EXT,101) INR
+      WRITE (EXTS,101) INS
+      WRITE (EXTR,101) INR
+      WRITE (EXT,102) (INS+(NREAL-1)*INR)
   101 FORMAT (I3.3)
+  102 FORMAT (I4.4)
       IF (ISWBN.EQ.1) THEN
-         OPEN (UNIT=12+ITID,FILE='EVENTS.'//EXT,FORM='UNFORMATTED',ACCESS='SEQUENTIAL',STATUS='NEW')
+         OPEN (UNIT=12+ITID,FILE='EVENTS.S'//EXTS//'.R'//EXTR,FORM='UNFORMATTED',ACCESS='SEQUENTIAL',STATUS='NEW')
       ELSEIF (ISWBN.EQ.2) THEN
          OPEN (UNIT=12+ITID,FILE='EVS.'//EXT,STATUS='UNKNOWN')
       ELSE
-         OPEN (UNIT=12+ITID,FILE='EVENTS.'//EXT,STATUS='UNKNOWN')
+         OPEN (UNIT=12+ITID,FILE='EVENTS.S'//EXTS//'.R'//EXTR,STATUS='UNKNOWN')
       ENDIF
       DO IEV=1,NEVENTS
        IF (ISWBN.EQ.0) THEN !used for DANCE so far, needed conversion by db_g4.exe
 !         WRITE (12,*)   ' '
-         WRITE (12+ITID,100) SPQQ(IEV,0),IPQQ(IEV,0),NR_STEPS(IEV),ELQQ(IEV,0),GTOTQQ(IEV,0)
+         WRITE (12+ITID,100) SPQQ(IEV,0),IPQQ(IEV,0),NR_STEPS(IEV),ELQQ(IEV,0)
          IF (ISWEL.EQ.1) WRITE (12+ITID,200) (ELQQ(IEV,J),J=1,NR_STEPS(IEV))
          IF (ISWSP.EQ.1) WRITE (12+ITID,300) (SPQQ(IEV,J),J=1,NR_STEPS(IEV))
          IF (ISWPA.EQ.1) WRITE (12+ITID,400) (IPQQ(IEV,J),J=1,NR_STEPS(IEV))
          IF (ISWIC.EQ.1) WRITE (12+ITID,400) (ICQQ(IEV,J),J=1,NR_STEPS(IEV))
          IF (ISWMX.EQ.1) WRITE (12+ITID,500) (DMQQ(IEV,J),J=1,NR_STEPS(IEV))
-         IF (ISWGT.EQ.1) WRITE (12+ITID,600) (GTOTQQ(IEV,J),J=1,NR_STEPS(IEV))
+         IF (ISWGT.EQ.1) WRITE (12+ITID,600) (WIQQ(IEV,J),J=1,NR_STEPS(IEV))
        ELSEIF (ISWBN.EQ.1) THEN !TODO ask MK about this
-         WRITE (12+ITID) SPQQ(IEV,0),IPQQ(IEV,0),NR_STEPS(IEV),ELQQ(IEV,0), GTOTQQ(IEV,0)
+         WRITE (12+ITID) SPQQ(IEV,0),IPQQ(IEV,0),NR_STEPS(IEV),ELQQ(IEV,0)
          IF (ISWEL.EQ.1) WRITE (12+ITID) (ELQQ(IEV,J),J=1,NR_STEPS(IEV))
          IF (ISWSP.EQ.1) WRITE (12+ITID) (SPQQ(IEV,J),J=1,NR_STEPS(IEV))
          IF (ISWPA.EQ.1) WRITE (12+ITID) (IPQQ(IEV,J),J=1,NR_STEPS(IEV))
          IF (ISWIC.EQ.1) WRITE (12+ITID) (ICQQ(IEV,J),J=1,NR_STEPS(IEV))
          IF (ISWMX.EQ.1) WRITE (12+ITID) (DMQQ(IEV,J),J=1,NR_STEPS(IEV))
-         IF (ISWGT.EQ.1) WRITE (12+ITID) (GTOTQQ(IEV,J),J=1,NR_STEPS(IEV))
+         IF (ISWGT.EQ.1) WRITE (12+ITID) (WIQQ(IEV,J),J=1,NR_STEPS(IEV))
        ELSEIF (ISWBN.EQ.2) THEN !DANCE GEANT4 input format
-         REAL_MULT=0
+         REAL_MULT=0 ! IC_type 0 = gamma, 1 = K-shell, 2 = higher-shell, 3 = pair
          DO J=1,NR_STEPS(IEV)
            IF (ICQQ(IEV,J).EQ.0) THEN
              REAL_MULT=REAL_MULT+1
              E_G(REAL_MULT)=ELQQ(IEV,J-1)-ELQQ(IEV,J)
+           ELSEIF (ICQQ(IEV,J).EQ.1) THEN
+             REAL_MULT=REAL_MULT+1
+             E_G(REAL_MULT)=xrayk-xrayl
+           ELSEIF (ICQQ(IEV,J).EQ.3) THEN
+             REAL_MULT=REAL_MULT+2
+             E_G(REAL_MULT-1)=.511
+             E_G(REAL_MULT)=.511
            ENDIF
          ENDDO
          IF (REAL_MULT.GT.0) WRITE (12+ITID,700) REAL_MULT, (E_G(J),J=1,REAL_MULT) !TODO co se deje kdyz je kaskada tvorena jen elektrony
@@ -1103,6 +1245,13 @@ REAL,DIMENSION(:),allocatable::    E_G
            IF (ICQQ(IEV,J).EQ.0) THEN
              REAL_MULT=REAL_MULT+1
              E_G(REAL_MULT)=ELQQ(IEV,J-1)-ELQQ(IEV,J)
+           ELSEIF (ICQQ(IEV,J).EQ.1) THEN
+             REAL_MULT=REAL_MULT+1
+             E_G(REAL_MULT)=xrayk-xrayl
+           ELSEIF (ICQQ(IEV,J).EQ.3) THEN
+             REAL_MULT=REAL_MULT+2
+             E_G(REAL_MULT-1)=.511
+             E_G(REAL_MULT)=.511
            ENDIF
          ENDDO
          IF (REAL_MULT.GT.0) THEN
@@ -1110,9 +1259,8 @@ REAL,DIMENSION(:),allocatable::    E_G
            WRITE (12+ITID,900) (1000*E_G(J),J=1,REAL_MULT)
          ENDIF !TODO co se deje kdyz je kaskada tvorena jen elektrony
        ENDIF
-
       ENDDO
-  100 FORMAT (F5.1,I2,I4,F9.5,2X,E9.3)
+  100 FORMAT (F5.1,I2,I4,2X,F9.5)
   200 FORMAT (2X,126F9.5)
   300 FORMAT (2X,126F9.1)
   400 FORMAT (2X,126I9)
@@ -1125,38 +1273,130 @@ REAL,DIMENSION(:),allocatable::    E_G
       CLOSE (UNIT=12+ITID,STATUS='KEEP')
       RETURN
 END SUBROUTINE DO_IT
+!
+!**********************************************************************
+SUBROUTINE LABELS(tdens,tsfe1,tsfm1,tsfe2)
+!************************************************************************
+CHARACTER*14 tdens,tsfe1,tsfm1,tsfe2
+  !
+  !    Conversion from the model number to model's string label
+  !
+        tdens='???'
+        tsfe1='???'
+        tsfm1='???'
+        tsfe2='???'
+  
+        IF (NOPTDE.EQ.0) THEN
+          tdens='CTF'
+        ELSEIF (NOPTDE.EQ.8) THEN
+          tdens='CTF-vE2009' 
+        ELSEIF ((NOPTDE.EQ.1).OR.(NOPTDE.EQ.4).OR.(NOPTDE.EQ.5)) THEN
+          tdens='BSFG'
+        ELSEIF (NOPTDE.EQ.6) THEN
+          tdens='BSFG-vE2005'
+        ELSEIF (NOPTDE.EQ.9) THEN
+          tdens='BSFG-vE2009'
+        ELSEIF (NOPTDE.EQ.11) THEN
+          tdens='(Goriely) tabs' 
+        ENDIF
+  
+        IF (NOPTE1.EQ.0) THEN
+          tsfe1='SP'
+        ELSEIF (NOPTE1.EQ.1) THEN
+          tsfe1='SLO'
+        ELSEIF (NOPTE1.EQ.2) THEN
+          tsfe1='ELO'
+        ELSEIF (NOPTE1.EQ.3) THEN
+          tsfe1='EGLO'
+        ELSEIF (NOPTE1.EQ.4) THEN
+          tsfe1='KMF'
+        ELSEIF (NOPTE1.EQ.5) THEN
+          tsfe1='GLO'
+        ELSEIF (NOPTE1.EQ.6) THEN
+          tsfe1='MGLO'
+        ELSEIF (NOPTE1.EQ.7) THEN
+          tsfe1='EELO'
+        ELSEIF (NOPTE1.EQ.8) THEN
+          tsfe1='1SLO+KMF'
+        ELSEIF (NOPTE1.EQ.9) THEN
+          tsfe1='1SLO+MGLO'
+        ELSEIF (NOPTE1.EQ.10) THEN
+          tsfe1='KMF->SLO'
+        ELSEIF (NOPTE1.EQ.11) THEN
+          tsfe1='(Goriely) tabs'
+        ENDIF  !TODO continue updating these and decide if to be used
+  
+        IF (NOPTM1.EQ.0) THEN
+          tsfm1='SP'
+        ELSEIF (NOPTM1.EQ.1) THEN
+          tsfm1='SLO'
+        ELSEIF (NOPTM1.EQ.4) THEN
+          tsfm1='SLO+SP'
+        ELSEIF (NOPTM1.EQ.11) THEN
+          tsfm1='(Goriely) tabs'
+        ENDIF
+  
+        IF (NOPTE2.EQ.0) THEN
+          tsfe2='SP'
+        ELSEIF (NOPTE2.EQ.1) THEN
+          tsfe2='SLO'
+        ELSEIF (NOPTE2.EQ.11) THEN
+          tsfe2='(Goriely) tabs'
+        ENDIF
+  
+END SUBROUTINE LABELS 
 !************************************************************************
 SUBROUTINE WRITE_PARAMS(NAME)
 !***********************************************************************
-character*12                          NAME
-CHARACTER*1                           CHPAR
-INTEGER::                             i
+character*12                      NAME
+CHARACTER*14                      tdens,tsfe1,tsfm1,tsfe2
+CHARACTER*1                       CHPAR
+INTEGER::                         i
 !
 !        Writing down some input parameters to output file
 !
+      CALL LABELS(tdens,tsfe1,tsfm1,tsfe2)
       OPEN(9,FILE=NAME,STATUS='UNKNOWN')
-      WRITE(9,*) 'Parameters of nuclear realizations:'
-      WRITE(9,*) 'GDER parameters: Erez[MeV]   Width[MeV]   Sigma[mb]'
+      WRITE(9,118) INT(ZNUM),INT(AMASS)
+  118 FORMAT('Simulation for compound nucleus Z= ',I3,' A= ',I3)
+      WRITE(9,*) 'Used models:'
+      WRITE(9,*) ' LD             E1             M1             E2'
+      WRITE(9,116) NOPTDE, NOPTE1, NOPTM1, NOPTE2
+  116 FORMAT(1X,I3,12X,I3,12X,I3,12X,I3)
+      WRITE(9,119) tdens,tsfe1,tsfm1,tsfe2
+  119 FORMAT(1X,A14,1X,A14,1X,A14,1X,A14)
+      WRITE(9,*) 'Parameters of PSFs:'
+      WRITE(9,*) 'E1 (GDER): Erez[MeV]  Width[MeV]   Sigma[mb]'
       DO i=1,NGIGE
         WRITE(9,111) ER(i),W0(i),SIG(i)
       ENDDO
-  111 FORMAT('               ',2F11.2,F13.1)
-      WRITE(9,*) 'GDMR parameters: Erez[MeV]   Width[MeV]   Sigma[mb]'
+  111 FORMAT('      ',2F11.2,F13.1)
+      WRITE(9,*) 'M1 (GDMR): Erez[MeV]  Width[MeV]   Sigma[mb]'
       DO i=1,NGIGM
         WRITE(9,111) ERM(i),WM0(i),SIGM(i)
       ENDDO
-      WRITE(9,*) 'GQER parameters: Erez[MeV]   Width[MeV]   Sigma[mb]'
+      WRITE(9,*) 'E2 (GQER): Erez[MeV]  Width[MeV]   Sigma[mb]'
       DO i=1,NGIGE2
        WRITE(9,111) ERE(i),WE0(i),SIGE(i)
       ENDDO
       WRITE(9,112) DEG,DMG,QEL
   112 FORMAT(' SP strength:   E1:',E9.2,'   M1:',E9.2,'   E2:',E9.2)
-      WRITE(9,114) TEMPER,EZERO,AMASS
-  114 FORMAT(' Density parameters:  CTF:   Temper:',F6.3,'     E0:',F6.3,'    Amass:',F5.0)
-      WRITE(9,115) ASHELL,DEL,PAIRING
-  115 FORMAT('                     BSFG:   Ashell:',F7.3,'  Del:',F6.3,'  Pairing:',F6.3)
-      WRITE(9,113) fermc,ek0,EGZERO,etr
-  113 FORMAT(' Fermi liq. par.:',F4.1,'            Ek0:',F4.1,'     Eg0:',F4.1,'        Etr:',F5.2)
+      WRITE(9,120) D0
+  120 FORMAT(' chosen LD yields D_0 =',F7.3,' eV')    
+      IF(NOPTDE.EQ.8) THEN
+        WRITE(9,114) TEMPER09,EZERO09
+      ELSE
+        WRITE(9,114) TEMPER,EZERO
+      ENDIF
+  114 FORMAT(' Density parameters:  CTF:   Temper:',F6.3,'     E0:',F6.3)
+      IF(NOPTDE.EQ.9) THEN
+        WRITE(9,115) ASHELL09,DEL09,PAIRING09
+      ELSE
+        WRITE(9,115) ASHELL,DEL,PAIRING
+      ENDIF
+  115 FORMAT(' Density parameters: BSFG:   Ashell:',F7.3,'  Del/E1:',F6.3,'  Pairing:',F6.3)
+      WRITE(9,113) fermc,ek0,EGZERO
+  113 FORMAT(' Fermi liq. par.:',F4.1,'            k0:',F4.1,'     Eg0:',F4.1)
       IF (IPINc.EQ.0) THEN
        CHPAR='+'
       ELSE
@@ -1170,10 +1410,10 @@ INTEGER::                             i
 END SUBROUTINE WRITE_PARAMS
 !***********************************************************************
 !continue
-SUBROUTINE WRITE_DICE_PRO(RADWID,RADWDI,NUC,NDEAD,NISOM,POPULT,POPULS,POPERT,POPERS,COVAP,COVAS)
+SUBROUTINE WRITE_DICE_PRO(RADWID,RADWDI,NDEAD,NISOM,POPULT,POPULS,POPERT,POPERS,COVAP,COVAS)
 !TODO navazat pripadne lepsi vypis pro popul_depopul grafy
 !***********************************************************************
-integer::                         NUC,NDEAD,NISOM
+integer::                         NDEAD,NISOM
 real::                            RADWID,RADWDI
 real,dimension(:),allocatable::   POPULT,POPERT,POPULS,POPERS
 real,dimension(:,:),allocatable:: COVAP,COVAS
@@ -1288,6 +1528,49 @@ INTEGER::                            IREAL,INUMLEV
 !
       RETURN
       END SUBROUTINE INICIALIZACE
+!***********************************************************************
+SUBROUTINE WRITELEVELS(IGLOB,NBIN,LEVCON)
+!   This subroutin writes the levels, see code
+integer::                             IGLOB,NBIN
+integer,dimension(:,:,:),allocatable:: LEVCON
+CHARACTER(3)::                        EXT
+REAL::                                S0,SPFI,ENRG,Q
+INTEGER::                             IPFI,IS,NL,IL,IBIN
+INTEGER,PARAMETER::                   MAXJC  = 49
+!global shared SPINC(1), ndis, endis, BN, DELTA
+      WRITE (EXT,211) IGLOB
+      S0=SPINC(1)-FLOAT(INT(SPINC(1)))
+      IF (S0.LE.1e-3) THEN  ! only for security reason
+        S0 = 0.0
+      ELSE
+        S0 = 0.5
+      ENDIF
+      OPEN (UNIT=(IGLOB+10),FILE='LEVELS.'//EXT,STATUS='UNKNOWN')
+      DO IS = 0, MAXJC
+        DO IPFI = 0, 1
+          SPFI = FLOAT(IS) + S0
+          NL = ndis(ISUBSC(spfi),ipfi)
+          DO IL = 1, NL
+            ENRG = endis(IL,ISUBSC(spfi),ipfi)
+            WRITE((IGLOB+10),212) ENRG, SPFI, IPFI
+          ENDDO
+          DO IBIN = NBIN, 1, -1
+            NL = LEVCON(IBIN,IS,IPFI)-LEVCON(IBIN-1,IS,IPFI)
+            DO IL = 1, NL
+              Q=FLOAT(2*IL-1)/FLOAT(2*NL) !TODO swap from lowest to highest
+              ENRG = BN - (FLOAT(IBIN)-Q)*DELTA
+              WRITE((IGLOB+10),212) ENRG, SPFI, IPFI
+            ENDDO
+          ENDDO ! IBIN
+          WRITE((IGLOB+10),*)
+          WRITE((IGLOB+10),*)
+        ENDDO !IPFI
+      ENDDO !IS
+      CLOSE((IGLOB+10))
+  211 FORMAT (I3.3)
+  212 FORMAT(F8.5,F5.1,I2)  ! End of the part writing generated levels
+      RETURN
+END SUBROUTINE WRITELEVELS
 !***********************************************************************
 end module vsechno
 !***********************************************************************
