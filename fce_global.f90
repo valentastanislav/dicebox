@@ -7,7 +7,7 @@ use spolecne
 implicit none
 
 integer::                             NEVENTS,NREAL,NSUB,NDDD,NOPTFL,NLINc,ipinc,nfilev,NSTEPS,NENT,NENK,NEN_IPF,&
-                                      KpopGS,ISWWR,ISWBN,ISWEL,ISWSP,ISWPA,ISWIC,ISWMX,ISWGT,ISWLS,NOPTCS,&
+                                      KpopGS,ISWWR,ISWBN,ISWEL,ISWSP,ISWPA,ISWIC,ISWMX,ISWWI,ISWLS,NOPTCS,&
                                       N_MSC_FS,MIN_MULTIPLICITA,MAX_MULTIPLICITA,TRGT_PI
 
 real::                                eall,EIN,EFI,ecrit,xrayk,xrayl,max_spin,factnrm,SUMNO,BIN_WIDTH,&
@@ -45,8 +45,7 @@ REAL::                  enrg,spfi,enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,F
   100 FORMAT (A80)
 !     The regime of run:
       READ (5,*)
-      READ (5,*) ISWWR,ISWBN,ISWEL,ISWSP,ISWPA,ISWIC,ISWMX,ISWGT,ISWLS
-!TODO Milan's    ISWWR,ISWBN,ISWEL,ISWSP,ISWPA,ISWIC,ISWMX,ISWWI,ISWLS
+      READ (5,*) ISWWR,ISWBN,ISWEL,ISWSP,ISWPA,ISWIC,ISWMX,ISWWI,ISWLS
       READ (5,*)
       Read (5,*) Nreal, NEVENTS, NSUB
       if (.not.allocated(KONTROLMATRIX)) then
@@ -55,7 +54,7 @@ REAL::                  enrg,spfi,enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,F
       READ (5,*)
       READ (5,*) NBIN,(KONTROLMATRIX(I,1),I=1,4)
       READ (5,*)
-      READ (5,*) NOPTFL,NOPTE1,NOPTM1,NOPTE2,NOPTDE,LMODE,LDENP
+      READ (5,*) NOPTFL,NOPTE1,NOPTM1,NOPTE2,NOPTDE,LMODE,LDENP,LDSTAG
       READ (5,*)
       READ (5,*) N_MSC_FS, BIN_WIDTH
       if (N_MSC_FS.GE.1) then
@@ -70,10 +69,17 @@ REAL::                  enrg,spfi,enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,F
 !     Giant Resonaces:
 !
       READ (5,*)
-      READ (5,*) NGIGE
-      DO I=1, NGIGE
-        READ (5,*) ER(I),W0(I),SIG(I)
-      ENDDO
+      IF(NOPTE1.NE.66) THEN
+        READ (5,*) NGIGE
+        DO I=1, NGIGE
+          READ (5,*) ER(I),W0(I),SIG(I)
+        ENDDO
+      ELSE
+        READ (5,*) NGIGE, NLOWLOR
+        DO I=1, NGIGE+NLOWLOR
+          READ (5,*) ER(I),W0(I),SIG(I)
+        ENDDO
+      ENDIF
       READ (5,*)
       READ (5,*) NGIGM
       DO I=1, NGIGM
@@ -104,11 +110,18 @@ REAL::                  enrg,spfi,enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,F
       READ (5,*)
       READ (5,*) EZERO,DEL,TEMPER,ASHELL,AMASS,ZNUM,PAIRING
       READ (5,*)
-      READ (5,*) ASHELL09,DEL09,TEMPER09,EZERO09,PAIRING09
+      READ (5,*) ASHELL09,DEL09,TEMPER09,EZERO09,PAIRING09,SIG_CUSTOM
       READ (5,*)
-      READ (5,*) DENPPC,DENPA0,DENPA1,DENPA2        !see PRC67, 015803 
+      READ (5,*) DENPPC,DENPA0,DENPA1,DENPA2        !see PRC67, 015803
+      IF ((LDENP.GT.0).AND.(DENPPC.LT.0.)) THEN
+        WRITE(*,*) 'Negative DENPPC means parity asymmetry is appearing with excitation energy',&
+         ' while oposite is usually the case. Are You sure about the DENPPC = ',DENPPC,' ?'
+      ENDIF
       READ (5,*)
-      READ (5,*) DENPL,DENPU,DENPA,DENPB,DENPC,DENPD
+      READ (5,*) DENLO,DENHI,DENPA,DENPB,DENPC,DENPD
+      IF (LDSTAG.NE.0) THEN
+        WRITE(*,*) 'Effect of staggering linearly decrasing from energy of ',DENLO,' MeV to ',DENHI,' MeV'
+      ENDIF
 !
 !     Data relating to the (thermal) neutron capturing state:
 !
@@ -1195,7 +1208,7 @@ REAL,DIMENSION(:),allocatable::    E_G
       ENDIF
       WRITE (EXTS,101) INS
       WRITE (EXTR,101) INR
-      WRITE (EXT,102) (INS+(NREAL-1)*INR)
+      WRITE (EXT,102) (INS+(INR-1)*NREAL)
   101 FORMAT (I3.3)
   102 FORMAT (I4.4)
       IF (ISWBN.EQ.1) THEN
@@ -1214,7 +1227,7 @@ REAL,DIMENSION(:),allocatable::    E_G
          IF (ISWPA.EQ.1) WRITE (12+ITID,400) (IPQQ(IEV,J),J=1,NR_STEPS(IEV))
          IF (ISWIC.EQ.1) WRITE (12+ITID,400) (ICQQ(IEV,J),J=1,NR_STEPS(IEV))
          IF (ISWMX.EQ.1) WRITE (12+ITID,500) (DMQQ(IEV,J),J=1,NR_STEPS(IEV))
-         IF (ISWGT.EQ.1) WRITE (12+ITID,600) (WIQQ(IEV,J),J=1,NR_STEPS(IEV))
+         IF (ISWWI.EQ.1) WRITE (12+ITID,600) (WIQQ(IEV,J),J=1,NR_STEPS(IEV))
        ELSEIF (ISWBN.EQ.1) THEN !TODO ask MK about this
          WRITE (12+ITID) SPQQ(IEV,0),IPQQ(IEV,0),NR_STEPS(IEV),ELQQ(IEV,0)
          IF (ISWEL.EQ.1) WRITE (12+ITID) (ELQQ(IEV,J),J=1,NR_STEPS(IEV))
@@ -1222,7 +1235,7 @@ REAL,DIMENSION(:),allocatable::    E_G
          IF (ISWPA.EQ.1) WRITE (12+ITID) (IPQQ(IEV,J),J=1,NR_STEPS(IEV))
          IF (ISWIC.EQ.1) WRITE (12+ITID) (ICQQ(IEV,J),J=1,NR_STEPS(IEV))
          IF (ISWMX.EQ.1) WRITE (12+ITID) (DMQQ(IEV,J),J=1,NR_STEPS(IEV))
-         IF (ISWGT.EQ.1) WRITE (12+ITID) (WIQQ(IEV,J),J=1,NR_STEPS(IEV))
+         IF (ISWWI.EQ.1) WRITE (12+ITID) (WIQQ(IEV,J),J=1,NR_STEPS(IEV))
        ELSEIF (ISWBN.EQ.2) THEN !DANCE GEANT4 input format
          REAL_MULT=0 ! IC_type 0 = gamma, 1 = K-shell, 2 = higher-shell, 3 = pair
          DO J=1,NR_STEPS(IEV)
@@ -1381,8 +1394,8 @@ INTEGER::                         i
       ENDDO
       WRITE(9,112) DEG,DMG,QEL
   112 FORMAT(' SP strength:   E1:',E9.2,'   M1:',E9.2,'   E2:',E9.2)
-      WRITE(9,120) D0
-  120 FORMAT(' chosen LD yields D_0 =',F7.3,' eV')    
+      WRITE(9,120) D0, 1e6/DENSITY(BN,TRGT_SPIN+0.5,TRGT_PI)
+  120 FORMAT(' chosen LD yields D_0 =',F10.3,' eV and D_0^+ =',F10.3)    
       IF(NOPTDE.EQ.8) THEN
         WRITE(9,114) TEMPER09,EZERO09
       ELSE

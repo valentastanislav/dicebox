@@ -6,10 +6,12 @@
 !TODO check about the models 48,49
 module spolecne
 use lokalni_fce
-integer::                             nbin,LMODE,LDENP,NLD,NGIGE,NGIGM,NGIGE2,NOPTE1,NOPTM1,NOPTE2,max_decays,numlev,NOPTDE
+integer::                             nbin,LMODE,LDENP,LDSTAG,NLD,NGIGE,NLOWLOR,NGIGM,NGIGE2,NOPTE1,NOPTM1,NOPTE2
+integer::                             max_decays,numlev,NOPTDE
 
-real::                                BN,DELTA,PAIRING,FJ,ASHELL09,DEL09,TEMPER09,EZERO09,PAIRING09,EZERO,TEMPER,AMASS,DEL,ASHELL
-real::                                DENPL,DENPU,DENPA,DENPB,DENPC,DENPD,ZNUM,DENPPC,DENPA0,DENPA1,DENPA2
+real::                                BN,AMASS,DELTA,PAIRING,FJ
+real::                                ASHELL09,DEL09,TEMPER09,EZERO09,PAIRING09,SIG_CUSTOM,EZERO,TEMPER,DEL,ASHELL
+real::                                DENLO,DENHI,DENPA,DENPB,DENPC,DENPD,ZNUM,DENPPC,DENPA0,DENPA1,DENPA2
 real::                                FERMC,TCONST,DEG,DMG,QEL,EK0
 real::                                EGZERO,DIPSLP,DIPZER,EFEC_E
 real,    dimension(1:4)::             PAR_E1,PAR_M1
@@ -258,7 +260,7 @@ integer::                             IPAR
         IF (EFEC_E.LE.0.) RETURN
         SIGSQ=.0888*SQRT(ASHELL*EFEC_E)*AMASS**.666667
         DENSITY=EXP(2.*SQRT(ASHELL*EFEC_E))/(16.9706*SQRT(SIGSQ)*ASHELL**.25*EFEC_E**1.25)
-        IF ((EEXC.GE.DENPL).AND.(EEXC.LE.DENPU)) THEN
+        IF ((EEXC.GE.DENLO).AND.(EEXC.LE.DENHI)) THEN
          FCTDEN=DENPA+DENPB*EEXC+DENPC*EEXC**2+DENPD*EEXC**3
          DENSITY=DENSITY*FCTDEN
         ENDIF
@@ -267,7 +269,7 @@ integer::                             IPAR
         IF (EFEC_E.LE.0.) RETURN
         DENSITY=EXP(EFEC_E/TEMPER)/TEMPER
         SIGSQ=(.98*AMASS**.29)**2.
-        IF ((EEXC.GE.DENPL).AND.(EEXC.LE.DENPU)) THEN
+        IF ((EEXC.GE.DENLO).AND.(EEXC.LE.DENHI)) THEN
          FCTDEN=DENPA+DENPB*EEXC+DENPC*EEXC**2+DENPD*EEXC**3
          DENSITY=DENSITY*FCTDEN
         ENDIF
@@ -298,6 +300,15 @@ integer::                             IPAR
         IF (((SPIN.EQ.2.5).OR.(SPIN.EQ.3.5)).AND.(EEXC.GE.DENPC).AND.(EEXC.LE.DENPD)) RETURN
         SIGSQ=.0146*(1+SQRT(1+4*ASHELL*EFEC_E))/2./ASHELL*AMASS**1.666667
         DENSITY=EXP(2.*SQRT(ASHELL*EFEC_E))/(16.9706*SQRT(SIGSQ)*ASHELL**.25*EFEC_E**1.25)
+      ELSEIF (NOPTDE.EQ.68) THEN                             ! modified BSFG
+        EFEC_E=EEXC-DEL
+        IF (EFEC_E.LE.0.) RETURN
+        SIGSQ=.0146*(1+SQRT(1+4*ASHELL*EFEC_E))/2./ASHELL*AMASS**1.666667
+        DENSITY=EXP(2.*SQRT(ASHELL*EFEC_E))/(16.9706*SQRT(SIGSQ)*ASHELL**.25*EFEC_E**1.25)
+        IF ((EEXC.GE.DENLO).AND.(EEXC.LE.DENHI)) THEN
+          FCTDEN=DENPA+DENPB*EEXC+DENPC*EEXC**2+DENPD*EEXC**3
+          DENSITY=DENSITY*FCTDEN
+        ENDIF
       ELSEIF (NOPTDE.EQ.11) THEN                            ! Goriely
         IF (EEXC.LE.0.) RETURN
         DENSITY = ALD(EEXC,SPIN,IPAR)
@@ -329,14 +340,24 @@ integer::                             IPAR
         SIGSQ=.0146*(1+SQRT(1+4*ASHELL*EEFF))/2./ASHELL*AMASS**1.666667
         EEFF=EEXC-EZERO
         DENSITY=EXP(EEFF/TEMPER)/TEMPER
+      ELSEIF (NOPTDE.EQ.18) THEN                             ! CTF with custom SIGSQ
+        EFEC_E=EEXC-EZERO09
+        IF (EFEC_E.LE.0.) RETURN
+        DENSITY=EXP(EFEC_E/TEMPER09)/TEMPER09
+        SIGSQ=SIG_CUSTOM**2
+      ELSEIF (NOPTDE.EQ.19) THEN                             ! BSFG with custom SIGSQ
+        EFEC_E=EEXC-DEL09
+        IF (EFEC_E.LE.0.) RETURN
+        SIGSQ=SIG_CUSTOM**2
+        DENSITY=EXP(2.*SQRT(ASHELL09*EFEC_E))/(16.9706*SQRT(SIGSQ)*ASHELL09**.25*EFEC_E**1.25)
       ENDIF
 !
       FJ=(SPIN+.5)*EXP(-(SPIN+.5)**2/(2.*SIGSQ))/SIGSQ
-!     "stagering" proposed by Egidy
-      IF ((NOPTDE.EQ.8).OR.(NOPTDE.EQ.9)) THEN
+!     "staggering" as originally proposed by von Egidy (2009) for models 8 and 9
+      IF (LDSTAG.NE.0) THEN
         IF (MOD(INT(AMASS+0.25),2).EQ.0) THEN
           IF (MOD(INT(ZNUM+0.25),2).EQ.0) THEN
-            STAG = (EEXC - DENPL) / (DENPU - DENPL)
+            STAG = (EEXC - DENLO) / (DENHI - DENLO)
             IF (STAG.LE.0.0) STAG = 0.0
             IF (STAG.GE.1.0) STAG = 1.0
             IF (SPIN.LT.0.25) THEN
@@ -1006,6 +1027,23 @@ real,dimension(1:22)::            enrgfin
           if (x.LT.PAR_E1(3)) x=PAR_E1(3)
           if (x.GT.1.0)    x=1.0
           SGAMMA=PIH*Q*EGAM**3*x
+          RETURN
+        ELSEIF (NOPTE1.EQ.66) THEN  !MGLO <-Empirical generalization of temperature dependent damping from EGLO(3)
+!                                    ! 1st resonance of Lorentzian shape
+          TFIN=TERM(EINI-EGAM)
+          Q=0.
+          DO I=1,NLOWLOR
+            QQ=SIG(I)*(EGAM*W0(I)**2/((EGAM**2-ER(I)**2)**2+(EGAM*W0(I))**2))
+            Q=Q+QQ
+          ENDDO
+          DO I=NLOWLOR+1,NGIGE+NLOWLOR
+            WPHEN=EK0+(1.-EK0)*(EGAM-EGZERO)/(ER(I)-EGZERO)
+            W=WPHEN*W0(I)*(EGAM**2+PI42*TFIN**2)/ER(I)**2 !energy and temperature dependent width
+            SLIM=FERMC*PI42*TFIN**2*W0(I)/ER(I)**5 !the non-zero limit at Egam-->0
+            QQ=SIG(I)*W0(I)*(SLIM+EGAM*W/((EGAM**2-ER(I)**2)**2+(EGAM*W)**2))
+            Q=Q+QQ
+          ENDDO
+          SGAMMA=PIH*Q*EGAM**3
           RETURN
         ELSEIF (NOPTE1.EQ.12) THEN   ! MLO1 (Original Plujko)
 !         !tato procedura nepostihuje mozna uplne vsechny pripady (hodnoty parametru),
@@ -1812,7 +1850,7 @@ REAL FUNCTION TERM(EEXC)
 real::            EEXC
       EFEC_E=EEXC-PAIRING
       IF (EFEC_E.LT.0.) EFEC_E=0.
-      TERM=SQRT((EFEC_E)/ASHELL)
+      TERM=SQRT((EFEC_E)/ASHELL) ! TERM=SQRT((MAX(0.,EEXC-PAIRING))/ASHELL)
       RETURN
       END FUNCTION TERM
 !***********************************************************************
