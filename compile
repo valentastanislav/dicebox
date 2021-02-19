@@ -1,1 +1,1 @@
-ifort -O3 -traceback -check all -error-limit 1 -openmp -parallel -fpp -mcmodel medium -o isol_para.exe fce_local.f90 fce_common.f90 fce_global.f90 dicebox.f90 > compile.log
+ifort -O3 -traceback -check all -error-limit 1 -qopenmp -parallel -fpp -mcmodel medium -o isol_para.exe fce_local.f90 fce_common.f90 fce_global.f90 dicebox.f90 > compile.log
