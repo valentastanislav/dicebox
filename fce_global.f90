@@ -95,7 +95,7 @@ REAL::                  enrg,spfi,enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,F
       READ (5,*)
       READ (5,*) DEG,DMG,QEL
       READ (5,*)
-      READ (5,*) FERMC, TCONST
+      READ (5,*) FERMC, TCONST, PAIR_PSF
       READ (5,*)
       READ (5,*) EK0,EGZERO
       READ (5,*)
@@ -182,12 +182,13 @@ REAL::                  enrg,spfi,enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,F
         allocate (isbspin(1:numlev,1:2))
       endif  
       DO i=1,numlev
-       READ (5,*) enrg,spfi,ipfi,denum(i)
+       READ (5,*) enrg,spfi,ipfi,denum(i),dummy,dummy,LVL_CLASS(i)
        write(*,*) 'reading lvl # ',i,' at energy ',enrg
        IF((ipfi.NE.0).AND.(ipfi.NE.1)) THEN
          WRITE(*,*) 'parity can be either 0 (+) or 1 (-)'
          STOP
        ENDIF
+       LVL_ENERGY(i)=enrg
        ndis(ISUBSC(spfi),ipfi)=ndis(ISUBSC(spfi),ipfi)+1
        endis(ndis(ISUBSC(spfi),ipfi),ISUBSC(spfi),ipfi)=enrg
        dekod(ndis(ISUBSC(spfi),ipfi),ISUBSC(spfi),ipfi)=i

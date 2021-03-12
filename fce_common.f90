@@ -12,16 +12,16 @@ integer::                             max_decays,numlev,NOPTDE
 real::                                BN,AMASS,DELTA,PAIRING,FJ
 real::                                ASHELL09,DEL09,TEMPER09,EZERO09,PAIRING09,SIG_CUSTOM,EZERO,TEMPER,DEL,ASHELL
 real::                                DENLO,DENHI,DENPA,DENPB,DENPC,DENPD,ZNUM,DENPPC,DENPA0,DENPA1,DENPA2
-real::                                FERMC,TCONST,DEG,DMG,QEL,EK0
+real::                                FERMC,TCONST,PAIR_PSF,DEG,DMG,QEL,EK0
 real::                                EGZERO,DIPSLP,DIPZER,EFEC_E
 real,    dimension(1:4)::             PAR_E1,PAR_M1
-integer, dimension(1:99)::            denum
+integer, dimension(1:99)::            denum,LVL_CLASS
 integer, dimension(0:49,0:1)::        NDIS,NEIGENVAL
 integer, dimension(1:99,1:20)::       delev,deparity
 integer,dimension(:,:),allocatable::  ityp
 
 real,    dimension(1:5)::             ER,SIG,W0,ERM,SIGM,WM0,ERE,SIGE,WE0
-real,    dimension(1:22)::            enrgfin !TODO define
+real,    dimension(1:99)::            LVL_ENERGY
 real,    dimension(0:270)::           TABENLD
 real,    dimension(1:99,0:20)::       sal,errsal,alpha !TODO somehow smart determine the maximum number of decays in DIS and make these allocatable
 real,    dimension(0:24,0:20)::       F4
@@ -704,8 +704,7 @@ REAL::            SFCEE1,SFCEM1,SFCEE2,Q,QQ,TFIN,W,WPHEN,SLIM,x,FACTOR,ALPPL,ER0
 INTEGER::         I
 integer::         ITYP
 real::            EGAM,EINI
-real,dimension(1:22)::            enrgfin
-!TODO note that enrgfin need to be defined somewhere in order to use coresponding model
+
       SGAMMA=0.
       SFCEM1=0
       SFCEE2=0
@@ -1656,6 +1655,22 @@ real,dimension(1:22)::            enrgfin
           SFCEM1=SGAMMA
           IF (ITYP.EQ.3) RETURN
 !
+        ELSEIF (NOPTM1.EQ.8) THEN   ! Scissors mode is NOT build on
+          Q=0.                      ! some of the terminal states
+          DO I=1,NGIGM
+            QQ=SIGM(I)*EGAM*WM0(I)**2/((EGAM**2-ERM(I)**2)**2+(EGAM*WM0(I))**2)
+            Q=Q+QQ
+          ENDDO
+          Efinal=Eini-Egam
+          DO i=1,numlev
+            IF((Efinal.EQ.LVL_ENERGY(i)).AND.(1.EQ.LVL_CLASS(i))) then
+              QQ=SIGM(1)*EGAM*WM0(1)**2/((EGAM**2-ERM(1)**2)**2+(EGAM*WM0(1))**2)
+              Q=Q-QQ  
+            ENDIF
+          ENDDO
+          SGAMMA=PIH*Q*EGAM**3
+          SFCEM1=SGAMMA
+          IF (ITYP.EQ.3) RETURN
         ELSEIF (NOPTM1.EQ.9) THEN   ! Scissors mode is build up only on
           Q=0.                      ! some of the terminal states
           DO I=2,NGIGM
@@ -1663,7 +1678,7 @@ real,dimension(1:22)::            enrgfin
             Q=Q+QQ
           ENDDO
           Efinal=Eini-Egam
-          IF ((Efinal.EQ.enrgfin(1)).OR.(Efinal.EQ.enrgfin(2)).OR.(Efinal.EQ.enrgfin(3))) THEN
+          IF ((Efinal.EQ.LVL_ENERGY(1)).OR.(Efinal.EQ.LVL_ENERGY(2)).OR.(Efinal.EQ.LVL_ENERGY(3))) THEN
             QQ=SIGM(1)*EGAM*WM0(1)**2/((EGAM**2-ERM(1)**2)**2+(EGAM*WM0(1))**2)
             Q=Q+QQ
           ENDIF
@@ -1848,9 +1863,9 @@ REAL FUNCTION TERM(EEXC)
 ! attention!! : here corrected formula for EEF  / DEL ==> PAIRING !!! /
 !
 real::            EEXC
-      EFEC_E=EEXC-PAIRING
+      EFEC_E=EEXC-PAIR_PSF
       IF (EFEC_E.LT.0.) EFEC_E=0.
-      TERM=SQRT((EFEC_E)/ASHELL) ! TERM=SQRT((MAX(0.,EEXC-PAIRING))/ASHELL)
+      TERM=SQRT((EFEC_E)/ASHELL) ! TERM=SQRT((MAX(0.,EEXC-PAIR_PSF))/ASHELL)
       RETURN
       END FUNCTION TERM
 !***********************************************************************
@@ -1859,7 +1874,7 @@ REAL FUNCTION TERM1(EEXC)
 !     The effective temperature corresponding to the exc.energy EEXC
 !
 !***********************************************************************
-! attention!! : here corrected formula for EEF  / DEL ==> PAIRING !!! /
+! attention!! : here corrected formula for EEF  / DEL ==> PAIR_PSF !!! /
 !
 real::            EEXC
       EFEC_E=EEXC
@@ -1873,10 +1888,10 @@ REAL FUNCTION TERMOSLO(EEXC)
 !     The effective temperature corresponding to the exc.energy EEXC
 !
 !***********************************************************************
-! attention!! : here corrected formula for EEF  / DEL ==> PAIRING !!! /
+! attention!! : here corrected formula for EEF  / DEL ==> PAIR_PSF !!! /
 !
 real::            EEXC
-      EFEC_E=EEXC-PAIRING+6.6/(AMASS**0.32)
+      EFEC_E=EEXC-PAIR_PSF+6.6/(AMASS**0.32)
       IF (EFEC_E.LT.0.) EFEC_E=0.
       TERMOSLO=SQRT((EFEC_E)/ASHELL)
       RETURN
@@ -1887,10 +1902,10 @@ REAL FUNCTION EFEXC(EEXC)
 !     The effective temperature corresponding to the exc.energy EEXC
 !
 !***********************************************************************
-! attention!! : here corrected formula for EEF  / DEL ==> PAIRING !!! /
+! attention!! : here corrected formula for EEF  / DEL ==> PAIR_PSF !!! /
 !
 real::            EEXC
-      EFEXC=EEXC-PAIRING
+      EFEXC=EEXC-PAIR_PSF
       RETURN
       END FUNCTION EFEXC
 !***********************************************************************
@@ -1899,10 +1914,10 @@ REAL FUNCTION TERMDILG(EEXC)
 !     The effective temperature corresponding to the exc.energy EEXC
 !
 !***********************************************************************
-! attention!! : here corrected formula for EEF  / DEL ==> PAIRING !!! /
+! attention!! : here corrected formula for EEF  / DEL ==> PAIR_PSF !!! /
 !
 real::            EEXC
-      EFEC_E=EEXC-PAIRING
+      EFEC_E=EEXC-PAIR_PSF
       IF (EFEC_E.LT.0.) EFEC_E=0.
       TERMDILG=(1.0 + SQRT(1.0+4.0*ASHELL*EFEC_E))/2.0/ASHELL
       RETURN
