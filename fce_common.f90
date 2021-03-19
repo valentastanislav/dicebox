@@ -1028,7 +1028,7 @@ real::            EGAM,EINI
           SGAMMA=PIH*Q*EGAM**3*x
           RETURN
         ELSEIF (NOPTE1.EQ.66) THEN  !MGLO <-Empirical generalization of temperature dependent damping from EGLO(3)
-!                                    ! 1st resonance of Lorentzian shape
+!                                    ! NLOWLOR resonances of Lorentzian shape, then NGIGE resonances of MGLO shape
           TFIN=TERM(EINI-EGAM)
           Q=0.
           DO I=1,NLOWLOR

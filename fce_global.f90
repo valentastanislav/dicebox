@@ -68,6 +68,7 @@ REAL::                  enrg,spfi,enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,F
 !
 !     Giant Resonaces:
 !
+      NLOWLOR=0
       READ (5,*)
       IF(NOPTE1.NE.66) THEN
         READ (5,*) NGIGE
@@ -1381,7 +1382,7 @@ INTEGER::                         i
   119 FORMAT(1X,A14,1X,A14,1X,A14,1X,A14)
       WRITE(9,*) 'Parameters of PSFs:'
       WRITE(9,*) 'E1 (GDER): Erez[MeV]  Width[MeV]   Sigma[mb]'
-      DO i=1,NGIGE
+      DO i=1,NGIGE+NLOWLOR
         WRITE(9,111) ER(i),W0(i),SIG(i)
       ENDDO
   111 FORMAT('      ',2F11.2,F13.1)
