@@ -15,17 +15,17 @@ real::                                DENLO,DENHI,DENPA,DENPB,DENPC,DENPD,ZNUM,D
 real::                                FERMC,TCONST,PAIR_PSF,DEG,DMG,QEL,EK0
 real::                                EGZERO,DIPSLP,DIPZER,EFEC_E
 real,    dimension(1:4)::             PAR_E1,PAR_M1
-integer, dimension(1:99)::            denum,LVL_CLASS
+integer, dimension(1:199)::            denum,LVL_CLASS
 integer, dimension(0:49,0:1)::        NDIS,NEIGENVAL
-integer, dimension(1:99,1:20)::       delev,deparity
+integer, dimension(1:199,1:20)::       delev,deparity
 integer,dimension(:,:),allocatable::  ityp
 
 real,    dimension(1:5)::             ER,SIG,W0,ERM,SIGM,WM0,ERE,SIGE,WE0
-real,    dimension(1:99)::            LVL_ENERGY
+real,    dimension(1:199)::            LVL_ENERGY
 real,    dimension(0:270)::           TABENLD
-real,    dimension(1:99,0:20)::       sal,errsal,alpha !TODO somehow smart determine the maximum number of decays in DIS and make these allocatable
+real,    dimension(1:199,0:20)::       sal,errsal,alpha !TODO somehow smart determine the maximum number of decays in DIS and make these allocatable
 real,    dimension(0:24,0:20)::       F4
-real,    dimension(1:99,1:20)::       despin
+real,    dimension(1:199,1:20)::       despin
 real,    dimension(1:20,0:49,0:1)::   ENDIS
 real,    dimension(0:270,0:49,0:1)::  TABLD
 integer, dimension(1:3)::             NPSF

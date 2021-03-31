@@ -13,7 +13,7 @@ integer::                             NEVENTS,NREAL,NSUB,NDDD,NOPTFL,NLINc,ipinc
 real::                                eall,EIN,EFI,ecrit,xrayk,xrayl,max_spin,factnrm,SUMNO,BIN_WIDTH,&
                                       D0,TRGT_SPIN
 
-integer, dimension(1:99)::            ilowip
+integer, dimension(1:199)::            ilowip
 integer, dimension(0:49,0:1)::        levdis
 integer, dimension(1:20,0:49,0:1)::   dekod
 integer,dimension(:,:),allocatable::  isbspin
@@ -21,9 +21,9 @@ integer,dimension(:,:),allocatable::  isbspin
 real,    dimension(:),allocatable::   MSC_FS
 real,    dimension(1:2)::             CAPFR,spinc
 real,    dimension(1:100)::           elent,elenk,ELEN_IPF
-real,    dimension(1:99)::            elowlev,elowsp
-real,    dimension(1:99,0:20)::       p_conv,p_conv_K,p_conv_IPF !TODO somehow smart determine the maximum number of decays in DIS and make these allocatable
-real,    dimension(1:99,1:20)::       deltx
+real,    dimension(1:199)::            elowlev,elowsp
+real,    dimension(1:199,0:20)::       p_conv,p_conv_K,p_conv_IPF !TODO somehow smart determine the maximum number of decays in DIS and make these allocatable
+real,    dimension(1:199,1:20)::       deltx
 real,    dimension(0:1,1:5,1:100)::    CONVt,CONVk,CONV_IPF
 
 contains
