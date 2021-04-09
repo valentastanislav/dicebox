@@ -316,16 +316,19 @@ REAL::                  enrg,spfi,enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,F
 !
         IF (spfi.EQ.0.0) THEN !matching the s-wave spacing for even-even target with gs spin 0
          FSPAC = (1.0 / SPACRES * 1e6) / DENSITY(BN,spfi+0.5,ipfi)
+         corrAlpha=0.0
          write(*,*) 'using tabulated NLD matched to s-wave resonance spacing of ',SPACRES
         ELSEIF (spfi.EQ.-1.0) THEN !constant renormalization by one common factor
          write(*,*) 'using tabulated NLD with renormalization by one given factor of ',SPACRES
          FSPAC = SPACRES
+         corrAlpha=0.0
         ELSEIF (spfi.EQ.-2.0) THEN !renormalization by Goriely PRC 78 064307 (2008): \rho(u,J,p)=\exp(alpha x \sqrt(U-delta)) * \rho(U-delta,J,p)
          write(*,*) 'using tabulated NLD with renormalization by Goriely PRC 78 064307 (2008) from ',TABENLD(1),&
          ' to ', TABENLD(NLD),' with alpha ',corrAlpha,' and delta ',corrDelta
          FSPAC = 1
         ELSE !matching the s-wave spacing for target with nonzero spin
          FSPAC = (1.0 / SPACRES * 1e6) /(DENSITY(BN,spfi-0.5,ipfi) + DENSITY(BN,spfi+0.5,ipfi))
+         corrAlpha=0.0
          write(*,*) 'using tabulated NLD matched to s-wave resonance spacing of ',SPACRES
         ENDIF
         DO I = 1, NLD !Standa's version
