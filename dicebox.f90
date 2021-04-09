@@ -38,13 +38,15 @@ integer,dimension(:,:),allocatable:: KONTROLMATRIX,gamma_multiplicita
 integer,dimension(:,:,:),allocatable:: intermediate2
 integer,dimension(:,:,:,:),allocatable:: intermediate3,XSC_work
 
-real,dimension(:),allocatable::      RADW
-real,dimension(:,:),allocatable::    POPTLEV,POPSLEV
+real,dimension(:,:),allocatable::    RADW
+real,dimension(:,:,:),allocatable::  POPTLEV,POPSLEV
 
-!FINAL SINGLE THREAD
-real,dimension(:),allocatable::   POPULT,POPERT,POPULS,POPERS
+!FINAL SINGLE THREAD !TODO if NaN keep occuring, maybe try double precision?
+real::                            RADVAR
+real,dimension(:),allocatable::   RADWID,RADWDI
+real,dimension(:,:),allocatable:: POPULT,POPERT,POPULS,POPERS
+real,dimension(:),allocatable::   POPVAR,POPSVAR
 real,dimension(:,:),allocatable:: COVAP,COVAS
-real::                            RADWID,RADWDI
 
 !$OMP PARALLEL DEFAULT(PRIVATE) &
 !$OMP SHARED(lopopgs,kpopgs,NVLAKEN,NDEAD,NISOM,KONTROLMATRIX,RADW,POPTLEV,POPSLEV,&
@@ -66,6 +68,7 @@ real::                            RADWID,RADWDI
 !$OMP TABENLD,TABLD,NLD,&
 !$OMP TABENPSF,TABPSF,NPSF,&
 !$OMP NBIN,DELTA,gamma_multiplicita,N_MSC_FS,MIN_MULTIPLICITA,MAX_MULTIPLICITA,MSC_FS,BIN_WIDTH,&
+!$OMP RADWID,RADWDI,RADVAR,&
 !$OMP intermediate2,intermediate3,XSC_work)
       ITID = OMP_GET_THREAD_NUM()
       IFLAG=0 !TODO ocesat od IFLAG
@@ -118,7 +121,7 @@ real::                            RADWID,RADWDI
          allocate(XSC_work(1:N_MSC_FS,1:NREAL*NSUB,MIN_MULTIPLICITA:MAX_MULTIPLICITA,0:INT(BN/BIN_WIDTH)))
         endif 
         CALL CNTRLMTRX(KONTROLMATRIX,4,NREAL)  !should be OK
-        CALL INICIALIZACE(NDEAD,NISOM,RADW,POPTLEV,POPSLEV)
+        CALL INICIALIZACE(NDEAD,NISOM,RADW,RADWID,RADWDI,POPTLEV,POPSLEV)
 !        IR0=KONTROLMATRIX(1,NREAL)
         IF (LMODE.EQ.1) THEN
           CALL GENERATE_GOE_EIGEN_VAL(IR1,700,IFLAG,U) !Maximum allowed dimension (2nd parameter) is 1000
@@ -197,7 +200,7 @@ real::                            RADWID,RADWDI
         IREGI=0
         IBIN=0
         ILIN=1
-        RADW(ISUB+(NUC-1)*NSUB)=0.
+        IF (RADW(NUC,ISUB).NE.0.0) write(*,*) 'problem with routine inicializace' !TODO delete if working properly
 !
         write(*,*) 'before WIDTHS_R for: ',ISUB,' of ',NUC
         DO ILINc=1,NLINc
@@ -205,7 +208,7 @@ real::                            RADWID,RADWDI
                         ISDIS,LEVCON,IRCON,IRCONc,IFLAG,U,IREGI,EIN,EFI)
         ENDDO
         DO ILINc=1,NLINc
-           RADW(ISUB+(NUC-1)*NSUB)=RADW(ISUB+(NUC-1)*NSUB)+sngl(TOTCON(ILINc))+TOTDIS(ILINc)
+          RADW(NUC,ISUB)=RADW(NUC,ISUB)+sngl(TOTCON(ILINc))+TOTDIS(ILINc)
         ENDDO
         IREGI=0
         IBIN=0
@@ -226,7 +229,7 @@ real::                            RADWID,RADWDI
           ELQQ(IEV,0)=BN
           SPQQ(IEV,0)=SPINc(ILINc)
           IPQQ(IEV,0)=IPINc
-          WIQQ(IEV,0)=RADW(ISUB+(NUC-1)*NSUB)
+          WIQQ(IEV,0)=RADW(NUC,ISUB)
           IREGI=0
           IBIN=0
           ILIN=1
@@ -242,9 +245,9 @@ real::                            RADWID,RADWDI
             IF (IREGI.GT.0) THEN
               do I=1,numlev
                 if (efi.eq.elowlev(I)) then
-                  poptlev(I,ISUB+(NUC-1)*NSUB)=poptlev(I,ISUB+(NUC-1)*NSUB)+1.
+                  poptlev(I,NUC,ISUB)=poptlev(I,NUC,ISUB)+1.
                   if (.NOT.sidlev) then
-                    popslev(I,ISUB+(NUC-1)*NSUB)=popslev(I,ISUB+(NUC-1)*NSUB)+1.
+                    popslev(I,NUC,ISUB)=popslev(I,NUC,ISUB)+1.
                     sidlev=.TRUE.
                   endif
                 endif
@@ -283,9 +286,9 @@ real::                            RADWID,RADWDI
           DMQQ(IEV,steps)=sign*sqrt(dmix2)
 !   **** feeding of ground state ****
           if (lopopgs) then
-            poptlev(kpopgs,ISUB+(NUC-1)*NSUB)=poptlev(kpopgs,ISUB+(NUC-1)*NSUB)+1.
+            poptlev(kpopgs,NUC,ISUB)=poptlev(kpopgs,NUC,ISUB)+1.
             if (.NOT.sidlev) then
-              popslev(kpopgs,ISUB+(NUC-1)*NSUB)=popslev(kpopgs,ISUB+(NUC-1)*NSUB)+1.
+              popslev(kpopgs,NUC,ISUB)=popslev(kpopgs,NUC,ISUB)+1.
             endif
           endif
           ICQQ(IEV,steps)=IC_type
@@ -303,53 +306,28 @@ real::                            RADWID,RADWDI
 !$OMP END DO
 !$OMP END PARALLEL
       IF(N_MSC_FS.GT.0) CALL WR_SPECTRA (intermediate2,intermediate3,XSC_work,gamma_multiplicita)
-      RADWID=0.
-      RADWDI=0.
-      DO NUC=1,NREAL*NSUB
-        RADWID=RADWID+RADW(NUC)
-        RADWDI=RADWDI+RADW(NUC)*RADW(NUC)
-      ENDDO
-      RADWID=RADWID/(NREAL*NSUB)
-      RADWDI=RADWDI/(NREAL*NSUB)-RADWID*RADWID
-!TODO vysledky s populacemi nizkolezicich hladin
-      allocate(POPULT(1:NUMLEV))
-      allocate(POPERT(1:NUMLEV))
-      allocate(POPULS(1:NUMLEV))
-      allocate(POPERS(1:NUMLEV))
-      allocate(COVAP(1:NUMLEV,1:NUMLEV))
-      allocate(COVAS(1:NUMLEV,1:NUMLEV))
-      DO K=1,NUMLEV
-        POPULT(K)=0.0
-        POPERT(K)=0.0
-        POPULS(K)=0.0
-        POPERS(K)=0.0
-        DO I=1,NUMLEV
-          COVAP(K,I)=0.0
-          COVAS(K,I)=0.0
-        ENDDO
-      ENDDO
-      DO K=1,NUMLEV
-        DO NUC=1,NREAL*NSUB
-          POPULT(K)=POPULT(K)+POPTLEV(K,NUC)/FLOAT(NEVENTS)
-          POPULS(K)=POPULS(K)+POPSLEV(K,NUC)/FLOAT(NEVENTS)
-          POPERT(K)=POPERT(K)+(POPTLEV(K,NUC)/FLOAT(NEVENTS))**2
-          POPERS(K)=POPERS(K)+(POPSLEV(K,NUC)/FLOAT(NEVENTS))**2
-          DO I=1,K
-            COVAP(K,I)=COVAP(K,I)+POPTLEV(K,NUC)/FLOAT(NEVENTS)*POPTLEV(I,NUC)/FLOAT(NEVENTS)
-            COVAS(K,I)=COVAS(K,I)+POPSLEV(K,NUC)/FLOAT(NEVENTS)*POPSLEV(I,NUC)/FLOAT(NEVENTS)
-          ENDDO
-        ENDDO
-        POPULT(K)=POPULT(K)/(NREAL*NSUB)
-        POPULS(K)=POPULS(K)/(NREAL*NSUB)
-        POPERT(K)=POPERT(K)/(NREAL*NSUB)-POPULT(K)**2
-        POPERS(K)=POPERS(K)/(NREAL*NSUB)-POPULS(K)**2
-        DO I=1,K
-          COVAP(K,I)=COVAP(K,I)/(NREAL*NSUB)-POPULT(K)*POPULT(I)
-          COVAS(K,I)=COVAS(K,I)/(NREAL*NSUB)-POPULS(K)*POPULS(I)
-        ENDDO
-        !write(*,*) elowlev(k), popult(k), (poptlev(k,i), i=1,NREAL)
-      ENDDO
 
-      CALL WRITE_DICE_PRO(RADWID,RADWDI,NDEAD,NISOM,POPULT,POPULS,POPERT,POPERS,COVAP,COVAS)
+      RADVAR=0.0
+      DO NUC=1,NREAL
+        DO ISUB=1,NSUB
+          RADWID(NUC)=RADWID(NUC)+RADW(NUC,ISUB)
+          RADWDI(NUC)=RADWDI(NUC)+RADW(NUC,ISUB)**2
+        ENDDO
+        RADWID(NUC)=RADWID(NUC)/NSUB !this holds the average within given suprarealization
+        RADWDI(NUC)=RADWDI(NUC)/NSUB-RADWID(NUC)**2 !this holds the variance within given suprarealization
+        RADWID(0)=RADWID(0)+RADWID(NUC)
+        RADVAR=RADVAR+RADWID(NUC)**2
+        RADWDI(0)=RADWDI(0)+RADWDI(NUC)
+      ENDDO
+      RADWID(0)=RADWID(0)/NREAL !this holds the global average
+      RADVAR=RADVAR/NREAL-RADWID(0)**2 !this holds the variance of averages
+      RADWDI(0)=RADWDI(0)/NREAL !this holds the average of variances within suprarealizations
+      CALL INIT_POPS(POPULT,POPERT,POPVAR,COVAP,POPULS,POPERS,POPSVAR,COVAS)
+      CALL CALC_POPS(POPTLEV,POPULT,POPERT,POPVAR,COVAP)
+      CALL CALC_POPS(POPSLEV,POPULS,POPERS,POPSVAR,COVAS)
+      CALL WRITE_PARAMS
+      CALL WRITE_DICE_PRO(RADWID(0),RADVAR,RADWDI(0),NDEAD,NISOM)
+      CALL WRITE_DICE_POPS(POPULT,POPERT,POPVAR,COVAP,POPULS,POPERS,POPSVAR,COVAS)
+
       END PROGRAM DICE_EVENT
       

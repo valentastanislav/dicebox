@@ -1361,9 +1361,8 @@ CHARACTER*14 tdens,tsfe1,tsfm1,tsfe2
   
 END SUBROUTINE LABELS 
 !************************************************************************
-SUBROUTINE WRITE_PARAMS(NAME)
+SUBROUTINE WRITE_PARAMS
 !***********************************************************************
-character*12                      NAME
 CHARACTER*14                      tdens,tsfe1,tsfm1,tsfe2
 CHARACTER*1                       CHPAR
 INTEGER::                         i
@@ -1371,7 +1370,7 @@ INTEGER::                         i
 !        Writing down some input parameters to output file
 !
       CALL LABELS(tdens,tsfe1,tsfm1,tsfe2)
-      OPEN(9,FILE=NAME,STATUS='UNKNOWN')
+      OPEN(9,FILE='DICE.PRO',STATUS='UNKNOWN')
       WRITE(9,118) INT(ZNUM),INT(AMASS)
   118 FORMAT('Simulation for compound nucleus Z= ',I3,' A= ',I3)
       WRITE(9,*) 'Used models:'
@@ -1424,125 +1423,243 @@ INTEGER::                         i
       RETURN
 END SUBROUTINE WRITE_PARAMS
 !***********************************************************************
-!continue
-SUBROUTINE WRITE_DICE_PRO(RADWID,RADWDI,NDEAD,NISOM,POPULT,POPULS,POPERT,POPERS,COVAP,COVAS)
-!TODO navazat pripadne lepsi vypis pro popul_depopul grafy
+SUBROUTINE WRITE_DICE_PRO(RADAVG,RADVAR,RADFLUCT,NDEAD,NISOM)
 !***********************************************************************
 integer::                         NDEAD,NISOM
-real::                            RADWID,RADWDI
-real,dimension(:),allocatable::   POPULT,POPERT,POPULS,POPERS
-real,dimension(:,:),allocatable:: COVAP,COVAS
-REAL::                            RN1,poper
-REAL,dimension(:,:),allocatable:: CONO
-CHARACTER*12                      NAME
-INTEGER::                         I,K,L
-        if (.not.allocated(CONO)) then
-          allocate(CONO(1:NUMLEV,1:NUMLEV))
-        endif
-        NAME='DICE.PRO'
-        CALL WRITE_PARAMS(NAME)
-        OPEN(9,FILE=NAME,ACCESS='APPEND',STATUS='OLD')
-        WRITE(9,*)
-        WRITE(9,*) 'Realization #', NREAL,' with ',NSUB,' subrealizations'
-        WRITE(9,*) 'Number of events',NEVENTS
-        WRITE(9,*)
-        WRITE(9,*) 'Capt.state tot.rad.width (MeV): ',RADWID,' +/-',SQRT(RADWDI)
-        WRITE(9,*)
-        WRITE(9,*) 'Number of cascades terminating at isomeric state: ',NISOM
-        WRITE(9,*)
-        WRITE(9,*) 'Number of cascades terminating at a dead end: ',NDEAD
-!       **  feeding of low-lying states ***
-        WRITE(9,*) 'Population of low-lying states'
-        if ((NREAL*NSUB).GT.1) then   
-          rn1=FLOAT((NREAL*NSUB))/FLOAT((NREAL*NSUB)-1)
-        else
-          rn1=1.
-        endif
-        do i=1,numlev
-          if (popert(i).GT.0.0) then
-            poper=sqrt(popert(i)*rn1)
-          else
-            poper=0.0  
-          endif
-          WRITE(9,198) i,elowlev(i),popult(i),poper,elowsp(i),ilowip(i)
-        enddo
-  198   format(I3,f10.5,F11.5,' +- ',F7.5,F11.1,I3)
-        write(9,*)
-        WRITE(9,*) 'Direct population of low-lying states from continuum'
-        do i=1,numlev
-          if (popers(i).GT.0.0) then
-            poper=sqrt(popers(i)*rn1)
-          else
-            poper=0.0  
-          endif
-          WRITE(9,198) i,elowlev(i),populs(i),poper,elowsp(i),ilowip(i)
-        enddo
-        write(9,*)
-!
-        WRITE(9,*) ' Population - covariance matrix'
-        DO K=1,NUMLEV
-          DO L=1,K
-            IF ((COVAP(K,K)*COVAP(L,L)).GT.0.) THEN
-              CONO(K,L)=COVAP(K,L)/SQRT((COVAP(K,K)*COVAP(L,L)))
-            ELSE
-              CONO(K,L)=1.0
-            ENDIF
-          ENDDO
-        ENDDO
-        DO K=1,NUMLEV
-!          WRITE(9,105) (CONO(K,L),L=1,NUMLEV)
-          WRITE(9,*) (CONO(K,L),L=1,NUMLEV)
-!  105     FORMAT(<NUMLEV>F7.3)
-        ENDDO
-        WRITE(9,*)
-
-        WRITE(9,*) ' Sidefeeding - covariance matrix'
-        DO K=1,NUMLEV
-          DO L=1,K
-            IF ((COVAS(K,K)*COVAS(L,L)).GT.0.) THEN
-              CONO(K,L)=COVAS(K,L)/SQRT((COVAS(K,K)*COVAS(L,L)))
-            ELSE
-              CONO(K,L)=1.0
-            ENDIF
-          ENDDO
-        ENDDO
-        DO K=1,NUMLEV
-!          WRITE(9,105) (CONO(K,L),L=1,NUMLEV)
-          WRITE(9,*) (CONO(K,L),L=1,NUMLEV)
-        ENDDO
-        CLOSE(9)
+real::                            RADAVG,RADVAR,RADFLUCT
+      OPEN(9,FILE='DICE.PRO',ACCESS='APPEND',STATUS='OLD')
+      WRITE(9,*)
+      WRITE(9,*) 'Suprarealization #', NREAL,' with ',NSUB,' realizations'
+      WRITE(9,*) 'Number of events',NEVENTS
+      WRITE(9,*)
+      WRITE(9,*) 'Capt.state tot.rad.width (MeV): '
+      WRITE(9,*) 'global average +/- overall fluctuation (suprareal , realization)'
+      WRITE(9,197) RADAVG,SQRT(RADVAR+RADFLUCT),SQRT(RADVAR),SQRT(RADFLUCT)
+  197 format(E13.6,' +/-',E13.6,' (',E13.6,' , ',E13.6,') ')   
+      WRITE(9,*)
+      WRITE(9,*) 'Number of cascades terminating at isomeric state: ',NISOM
+      WRITE(9,*)
+      WRITE(9,*) 'Number of cascades terminating at a dead end: ',NDEAD
+      WRITE(9,*)
+      CLOSE(9)
       RETURN
 END SUBROUTINE WRITE_DICE_PRO
 !***********************************************************************
-      SUBROUTINE INICIALIZACE(NDEAD,NISOM,RADW,POPTLEV,POPSLEV)
+SUBROUTINE WRITE_DICE_POPS(POPULT,POPERT,POPVAR,COVAP,POPULS,POPERS,POPSVAR,COVAS)
+!TODO navazat pripadne lepsi vypis pro popul_depopul grafy
+!***********************************************************************
+real,dimension(:,:),allocatable:: POPULT,POPERT,POPULS,POPERS
+real,dimension(:),allocatable::   POPVAR,POPSVAR
+real,dimension(:,:),allocatable:: COVAP,COVAS
+REAL,dimension(:,:),allocatable:: CONO
+REAL::                            poper
+INTEGER::                         I,K,L,ILVL
+      if (.not.allocated(CONO)) then
+        allocate(CONO(1:NUMLEV,1:NUMLEV))
+      endif
+
+      OPEN(9,FILE='DICE.PRO',ACCESS='APPEND',STATUS='OLD')
+      WRITE(9,*) 'Population of low-lying states'
+      WRITE(9,*) ' #      E       pop       s_all    s_supr    s_real    J pi'
+      DO ILVL=1,numlev
+        poper=SQRT(POPVAR(ILVL)+POPERT(ILVL,0))
+        WRITE(9,198) ILVL,elowlev(ILVL),POPULT(ILVL,0),poper,SQRT(POPVAR(ILVL)),SQRT(POPERT(ILVL,0)),elowsp(ILVL),ilowip(ILVL)
+      ENDDO
+
+      WRITE(9,*) 'Direct population of low-lying states from continuum'
+      WRITE(9,*) ' #      E       pop       s_all    s_supr    s_real    J pi'
+      DO ILVL=1,numlev
+        poper=SQRT(POPSVAR(ILVL)+POPERS(ILVL,0))
+        WRITE(9,198) ILVL,elowlev(ILVL),POPULS(ILVL,0),poper,SQRT(POPSVAR(ILVL)),SQRT(POPERS(ILVL,0)),elowsp(ILVL),ilowip(ILVL)
+      ENDDO
+
+  198 format(I3,F10.6,F9.5,' +- ',F7.5,' (',F7.5,' , ',F7.5,') ',F4.1,I2)   
+
+      ! !TODO vysledky s populacemi nizkolezicich hladin
+      ! DO K=1,NUMLEV
+      !   POPULT(K)=0.0
+      !   POPERT(K)=0.0
+      !   POPULS(K)=0.0
+      !   POPERS(K)=0.0
+      !   DO I=1,NUMLEV
+      !     COVAP(K,I)=0.0
+      !     COVAS(K,I)=0.0
+      !   ENDDO
+      ! ENDDO
+      ! DO K=1,NUMLEV
+      !   DO NUC=1,NREAL*NSUB
+      !     POPULT(K)=POPULT(K)+POPTLEV(K,NUC)/FLOAT(NEVENTS)
+      !     POPULS(K)=POPULS(K)+POPSLEV(K,NUC)/FLOAT(NEVENTS)
+      !     POPERT(K)=POPERT(K)+(POPTLEV(K,NUC)/FLOAT(NEVENTS))**2
+      !     POPERS(K)=POPERS(K)+(POPSLEV(K,NUC)/FLOAT(NEVENTS))**2
+      !     DO I=1,K
+      !       COVAP(K,I)=COVAP(K,I)+POPTLEV(K,NUC)/FLOAT(NEVENTS)*POPTLEV(I,NUC)/FLOAT(NEVENTS)
+      !       COVAS(K,I)=COVAS(K,I)+POPSLEV(K,NUC)/FLOAT(NEVENTS)*POPSLEV(I,NUC)/FLOAT(NEVENTS)
+      !     ENDDO
+      !   ENDDO
+      !   POPULT(K)=POPULT(K)/(NREAL*NSUB)
+      !   POPULS(K)=POPULS(K)/(NREAL*NSUB)
+      !   POPERT(K)=POPERT(K)/(NREAL*NSUB)-POPULT(K)**2
+      !   POPERS(K)=POPERS(K)/(NREAL*NSUB)-POPULS(K)**2
+      !   DO I=1,K
+      !     COVAP(K,I)=COVAP(K,I)/(NREAL*NSUB)-POPULT(K)*POPULT(I)
+      !     COVAS(K,I)=COVAS(K,I)/(NREAL*NSUB)-POPULS(K)*POPULS(I)
+      !   ENDDO
+      !   !write(*,*) elowlev(k), popult(k), (poptlev(k,i), i=1,NREAL)
+      ! ENDDO
+!         write(9,*)
+!         WRITE(9,*) 'Direct population of low-lying states from continuum'
+!         do i=1,numlev
+!           if (popers(i).GT.0.0) then
+!             poper=sqrt(popers(i)*rn1)
+!           else
+!             poper=0.0  
+!           endif
+!           WRITE(9,198) i,elowlev(i),populs(i),poper,elowsp(i),ilowip(i)
+!         enddo
+!         write(9,*)
+! !
+!         WRITE(9,*) ' Population - covariance matrix'
+!         DO K=1,NUMLEV
+!           DO L=1,K
+!             IF ((COVAP(K,K)*COVAP(L,L)).GT.0.) THEN
+!               CONO(K,L)=COVAP(K,L)/SQRT((COVAP(K,K)*COVAP(L,L)))
+!             ELSE
+!               CONO(K,L)=1.0
+!             ENDIF
+!           ENDDO
+!         ENDDO
+!         DO K=1,NUMLEV
+! !          WRITE(9,105) (CONO(K,L),L=1,NUMLEV)
+!           ! WRITE(9,*) (CONO(K,L),L=1,NUMLEV)
+! !  105     FORMAT(<NUMLEV>F7.3)
+!         ENDDO
+!         WRITE(9,*)
+
+!         WRITE(9,*) ' Sidefeeding - covariance matrix'
+!         DO K=1,NUMLEV
+!           DO L=1,K
+!             IF ((COVAS(K,K)*COVAS(L,L)).GT.0.) THEN
+!               CONO(K,L)=COVAS(K,L)/SQRT((COVAS(K,K)*COVAS(L,L)))
+!             ELSE
+!               CONO(K,L)=1.0
+!             ENDIF
+!           ENDDO
+!         ENDDO
+!         DO K=1,NUMLEV
+! !          WRITE(9,105) (CONO(K,L),L=1,NUMLEV)
+!           ! WRITE(9,*) (CONO(K,L),L=1,NUMLEV)
+!         ENDDO
+      CLOSE(9)
+      RETURN
+END SUBROUTINE WRITE_DICE_POPS
+!***********************************************************************
+SUBROUTINE INIT_POPS(POPULT,POPERT,POPVAR,COVAP,POPULS,POPERS,POPSVAR,COVAS)
+!***********************************************************************
+real,dimension(:,:),allocatable::    POPULT,POPERT,POPULS,POPERS
+real,dimension(:),allocatable::      POPVAR,POPSVAR
+real,dimension(:,:),allocatable::    COVAP,COVAS
+INTEGER::                            IREAL,ILVL,JLVL
+
+! total feeding variables
+      allocate(POPULT(1:NUMLEV,0:NREAL))
+      allocate(POPERT(1:NUMLEV,0:NREAL))
+      allocate(POPVAR(1:NUMLEV))
+      allocate(COVAP(1:NUMLEV,1:NUMLEV))
+
+! side-feeding variables
+      allocate(POPULS(1:NUMLEV,0:NREAL))
+      allocate(POPERS(1:NUMLEV,0:NREAL))
+      allocate(POPSVAR(1:NUMLEV))
+      allocate(COVAS(1:NUMLEV,1:NUMLEV))
+
+      DO ILVL=1,numlev
+        DO IREAL=0,NREAL
+          POPULT(ILVL,IREAL)=0.0
+          POPERT(ILVL,IREAL)=0.0
+          POPULS(ILVL,IREAL)=0.0
+          POPERS(ILVL,IREAL)=0.0
+        ENDDO
+        POPVAR(ILVL)=0.0
+        POPSVAR(ILVL)=0.0
+        DO JLVL=1,numlev
+          COVAP(ILVL,JLVL)=0.0
+          COVAS(ILVL,JLVL)=0.0
+        ENDDO
+      ENDDO
+
+      RETURN
+END SUBROUTINE INIT_POPS
+!***********************************************************************
+SUBROUTINE CALC_POPS(POPTLEV,POPULT,POPERT,POPVAR,COVAP)
+!***********************************************************************
+real,dimension(:,:,:),allocatable::  POPTLEV
+real,dimension(:,:),allocatable::    POPULT,POPERT
+real,dimension(:),allocatable::      POPVAR
+real,dimension(:,:),allocatable::    COVAP
+INTEGER::                            IREAL,ISUB,ILVL
+      
+      DO ILVL=1,numlev
+        DO IREAL=1,NREAL
+          DO ISUB=1,NSUB
+            POPULT(ILVL,IREAL)=POPULT(ILVL,IREAL)+poptlev(ILVL,IREAL,ISUB)/FLOAT(NEVENTS)
+            POPERT(ILVL,IREAL)=POPERT(ILVL,IREAL)+(poptlev(ILVL,IREAL,ISUB)/FLOAT(NEVENTS))**2
+          ENDDO
+          POPULT(ILVL,IREAL)=POPULT(ILVL,IREAL)/NSUB
+          POPERT(ILVL,IREAL)=POPERT(ILVL,IREAL)/NSUB-POPULT(ILVL,IREAL)**2
+          POPULT(ILVL,0)=POPULT(ILVL,0)+POPULT(ILVL,IREAL)
+          POPVAR(ILVL)=POPVAR(ILVL)+POPULT(ILVL,IREAL)**2
+          POPERT(ILVL,0)=POPERT(ILVL,0)+POPERT(ILVL,IREAL)
+        ENDDO
+        POPULT(ILVL,0)=POPULT(ILVL,0)/NREAL !this holds the global average
+        POPVAR(ILVL)=POPVAR(ILVL)/NREAL-POPULT(ILVL,0)**2 !this holds the variance of averages
+        POPERT(ILVL,0)=POPERT(ILVL,0)/NREAL !this holds the average of variances within suprarealizations
+      ENDDO
+      RETURN
+END SUBROUTINE CALC_POPS
+!***********************************************************************
+SUBROUTINE INICIALIZACE(NDEAD,NISOM,RADW,RADWID,RADWDI,POPTLEV,POPSLEV)
 !TODO promenne dodelat vzhledem k jejich vypisu
 integer::                            NDEAD,NISOM
-real,   dimension(:),allocatable::   RADW
-real,dimension(:,:),allocatable::    POPTLEV,POPSLEV
-INTEGER::                            IREAL,INUMLEV
+real,dimension(:),allocatable::      RADWID,RADWDI
+real,dimension(:,:),allocatable::    RADW
+real,dimension(:,:,:),allocatable::  POPTLEV,POPSLEV
+INTEGER::                            IREAL,ISUB,ILVL
 !
+      if (.not.allocated(RADWID)) then
+        allocate(RADWID(0:NREAL))
+      endif  
+      if (.not.allocated(RADWDI)) then
+        allocate(RADWDI(0:NREAL))
+      endif  
       if (.not.allocated(RADW)) then
-        allocate(RADW(1:NREAL*NSUB))
+        allocate(RADW(1:NREAL,1:NSUB))
       endif  
       if (.not.allocated(POPTLEV)) then
-        allocate(POPTLEV(1:numlev,1:NREAL*NSUB))
+        allocate(POPTLEV(1:numlev,1:NREAL,1:NSUB))
       endif 
       if (.not.allocated(POPSLEV)) then
-        allocate(POPSLEV(1:numlev,1:NREAL*NSUB))
+        allocate(POPSLEV(1:numlev,1:NREAL,1:NSUB))
       endif 
 
       NDEAD=0
       NISOM=0
-      DO IREAL=1,NREAL*NSUB
-        RADW(IREAL)=0.0
-        DO INUMLEV=1,numlev
-          POPTLEV(INUMLEV,IREAL) = 0.
-          POPSLEV(INUMLEV,IREAL) = 0.
+      DO IREAL=0,NREAL
+        RADWID(IREAL)=0.0
+        RADWDI(IREAL)=0.0
+      ENDDO
+      DO IREAL=1,NREAL
+        DO ISUB=1,NSUB
+          RADW(IREAL,ISUB)=0.0
+          DO ILVL=1,numlev
+            POPTLEV(ILVL,IREAL,ISUB) = 0.
+            POPSLEV(ILVL,IREAL,ISUB) = 0.
+          ENDDO
         ENDDO
       ENDDO
 !
       RETURN
-      END SUBROUTINE INICIALIZACE
+END SUBROUTINE INICIALIZACE
 !***********************************************************************
 SUBROUTINE WRITELEVELS(IGLOB,NBIN,LEVCON)
 !   This subroutin writes the levels, see code
