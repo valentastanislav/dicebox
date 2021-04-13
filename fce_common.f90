@@ -322,13 +322,13 @@ integer::                             IPAR
         IF (EFEC_E.LE.0.) RETURN
         SIGSQ=.0146*SQRT(EFEC_E/ASHELL)*AMASS**1.666667
         DENSITY=EXP(2.*SQRT(ASHELL*EFEC_E))/(16.9706*SQRT(SIGSQ)*ASHELL**.25*EFEC_E**1.25)
-      ELSEIF (NOPTDE.EQ.8) THEN                             ! CTF von Edigy 09
+      ELSEIF (NOPTDE.EQ.8) THEN                             ! CTF von Egidy 09
         EFEC_E=EEXC-EZERO09
         IF (EFEC_E.LE.0.) RETURN
         IF (EEXC.LE..5*PAIRING09) RETURN
         DENSITY=EXP(EFEC_E/TEMPER09)/TEMPER09
         SIGSQ=.391*AMASS**.675*(EEXC-.5*PAIRING09)**.312
-      ELSEIF (NOPTDE.EQ.9) THEN                             ! BSFG von Edigy 09
+      ELSEIF (NOPTDE.EQ.9) THEN                             ! BSFG von Egidy 09
         EFEC_E=EEXC-DEL09
         IF (EFEC_E.LE.0.) RETURN
         IF (EEXC.LE..5*PAIRING09) RETURN
@@ -350,6 +350,12 @@ integer::                             IPAR
         IF (EFEC_E.LE.0.) RETURN
         SIGSQ=SIG_CUSTOM**2
         DENSITY=EXP(2.*SQRT(ASHELL09*EFEC_E))/(16.9706*SQRT(SIGSQ)*ASHELL09**.25*EFEC_E**1.25)
+      ELSEIF (NOPTDE.EQ.29) THEN                             ! BSFG custom for 168Er, inspired by von Egidy 09
+        EFEC_E=EEXC !E1_ours=0.00; NOTE needs staggering - maximum effect up to at least 2.4~MeV, probably higher
+        IF (EFEC_E.LE.0.) RETURN
+        IF (EEXC.LE..5*PAIRING09) RETURN !pairing_ours=pairing_09
+        SIGSQ=.28*AMASS**.695*(EEXC-.5*PAIRING09)**.14 !sigma dependence with modified coefficients
+        DENSITY=EXP(2.*SQRT(15.00*EFEC_E))/(16.9706*SQRT(SIGSQ)*15.00**.25*EFEC_E**1.25) !a_ours=15.00
       ENDIF
 !
       FJ=(SPIN+.5)*EXP(-(SPIN+.5)**2/(2.*SIGSQ))/SIGSQ

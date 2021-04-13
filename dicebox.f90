@@ -217,7 +217,7 @@ real,dimension(:,:),allocatable:: COVAP,COVAS
 !
 !       The master DO-loop
         DO IEV=1,NEVENTS
-          IF (MOD(IEV-1,10000).EQ.0) WRITE(*,5410) ITID,IEV
+          IF (MOD(log10(REAL(IEV-1)),1.).EQ.0) WRITE(*,5410) ITID,IEV
  5410     FORMAT('+',21X,I6,2X,I10)
           IC_type=0 !0 = gamma, 1 = K-shell, 2 = higher-shell, 3 = pair
           sidlev=.FALSE.

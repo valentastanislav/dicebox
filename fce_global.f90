@@ -1480,7 +1480,7 @@ INTEGER::                         I,K,L,ILVL
         WRITE(9,198) ILVL,elowlev(ILVL),POPULS(ILVL,0),poper,SQRT(POPSVAR(ILVL)),SQRT(POPERS(ILVL,0)),elowsp(ILVL),ilowip(ILVL)
       ENDDO
 
-  198 format(I3,F10.6,F9.5,' +- ',F7.5,' (',F7.5,' , ',F7.5,') ',F4.1,I2)   
+  198 format(I3,F10.6,F11.7,' +- ',F9.7,' (',F9.7,' , ',F9.7,') ',F4.1,I2)
 
       ! !TODO vysledky s populacemi nizkolezicich hladin
       ! DO K=1,NUMLEV
