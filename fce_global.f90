@@ -121,6 +121,9 @@ REAL::                  enrg,spfi,enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,F
       READ (5,*)
       READ (5,*) DENLO,DENHI,DENPA,DENPB,DENPC,DENPD
       IF (LDSTAG.NE.0) THEN
+        IF ((MOD(INT(AMASS+0.25),2).NE.0).OR.(MOD(INT(ZNUM+0.25),2).EQ.0)) THEN
+            WRITE(*,*) 'Are You sure You want to use staggering in isotope which is not even-even?!'
+        ENDIF
         WRITE(*,*) 'Effect of staggering linearly decrasing from energy of ',DENLO,' MeV to ',DENHI,' MeV'
       ENDIF
 !
