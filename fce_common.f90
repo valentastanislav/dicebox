@@ -362,16 +362,16 @@ integer::                             IPAR
 !     "staggering" as originally proposed by von Egidy (2009) for models 8 and 9
       IF (LDSTAG.EQ.1) THEN !staggering in + parity only
         IF (IPAR.EQ.0) THEN
-            STAG = (EEXC - DENLO) / (DENHI - DENLO)
-            IF (STAG.LE.0.0) STAG = 0.0
-            IF (STAG.GE.1.0) STAG = 1.0
-            IF (SPIN.LT.0.25) THEN
-              FJ = FJ * (1.0 + 1.02 * (1.0 - STAG) )
-            ELSEIF (MOD(INT(SPIN+0.25),2).EQ.0) THEN
-              FJ = FJ * (1.0 + 0.227 * (1.0 - STAG) )
-            ELSE
-              FJ = FJ * (1.0 - 0.227 * (1.0 - STAG) )
-            ENDIF
+          STAG = (EEXC - DENLO) / (DENHI - DENLO)
+          IF (STAG.LE.0.0) STAG = 0.0
+          IF (STAG.GE.1.0) STAG = 1.0
+          IF (SPIN.LT.0.25) THEN
+            FJ = FJ * (1.0 + 1.02 * (1.0 - STAG) )
+          ELSEIF (MOD(INT(SPIN+0.25),2).EQ.0) THEN
+            FJ = FJ * (1.0 + 0.227 * (1.0 - STAG) )
+          ELSE
+            FJ = FJ * (1.0 - 0.227 * (1.0 - STAG) )
+          ENDIF
         ENDIF
       ELSEIF (LDSTAG.EQ.2) THEN !staggering in both parities
         STAG = (EEXC - DENLO) / (DENHI - DENLO)
