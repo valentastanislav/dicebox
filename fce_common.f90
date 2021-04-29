@@ -1000,9 +1000,13 @@ real::            EGAM,EINI
           SGAMMA=PAR_E1(1)*PIH*Q*EGAM**3
           RETURN
         ELSEIF (NOPTE1.EQ.77) THEN  ! MGLO(6) with constant T and Lorentzian LLR
-          TFIN=TCONST        
-          Q=SIG(1)*(EGAM*W0(1)**2/((EGAM**2-ER(1)**2)**2+(EGAM*W0(1))**2)) ! Lorentzian LLR
-          DO I=2,NGIGE
+          TFIN=TCONST
+          Q=0.
+          DO I=1,NLOWLOR
+            QQ=SIG(I)*(EGAM*W0(I)**2/((EGAM**2-ER(I)**2)**2+(EGAM*W0(I))**2))
+            Q=Q+QQ
+          ENDDO
+          DO I=NLOWLOR+1,NGIGE+NLOWLOR
             WPHEN=EK0+(1.-EK0)*(EGAM-EGZERO)/(ER(I)-EGZERO)
             W=WPHEN*W0(I)*(EGAM**2+PI42*TFIN**2)/ER(I)**2
             SLIM=FERMC*PI42*TFIN**2*W0(I)/ER(I)**5
@@ -1011,7 +1015,23 @@ real::            EGAM,EINI
           ENDDO
           SGAMMA=PAR_E1(1)*PIH*Q*EGAM**3
           RETURN
-!
+        ELSEIF (NOPTE1.EQ.66) THEN  !MGLO <-Empirical generalization of temperature dependent damping from EGLO(3)
+!                                    ! NLOWLOR resonances of Lorentzian shape, then NGIGE resonances of MGLO shape
+          TFIN=TERM(EINI-EGAM)
+          Q=0.
+          DO I=1,NLOWLOR
+            QQ=SIG(I)*(EGAM*W0(I)**2/((EGAM**2-ER(I)**2)**2+(EGAM*W0(I))**2))
+            Q=Q+QQ
+          ENDDO
+          DO I=NLOWLOR+1,NGIGE+NLOWLOR
+            WPHEN=EK0+(1.-EK0)*(EGAM-EGZERO)/(ER(I)-EGZERO)
+            W=WPHEN*W0(I)*(EGAM**2+PI42*TFIN**2)/ER(I)**2 !energy and temperature dependent width
+            SLIM=FERMC*PI42*TFIN**2*W0(I)/ER(I)**5 !the non-zero limit at Egam-->0
+            QQ=SIG(I)*W0(I)*(SLIM+EGAM*W/((EGAM**2-ER(I)**2)**2+(EGAM*W)**2))
+            Q=Q+QQ
+          ENDDO
+          SGAMMA=PIH*Q*EGAM**3
+          RETURN
         ELSEIF (NOPTE1.EQ.39) THEN   ! Pure Fermi liquid theory (Kadmenskij)
 !                                      suppressed for small EGAM - const. T !!!
           TFIN=TCONST
@@ -1042,23 +1062,6 @@ real::            EGAM,EINI
           if (x.LT.PAR_E1(3)) x=PAR_E1(3)
           if (x.GT.1.0)    x=1.0
           SGAMMA=PIH*Q*EGAM**3*x
-          RETURN
-        ELSEIF (NOPTE1.EQ.66) THEN  !MGLO <-Empirical generalization of temperature dependent damping from EGLO(3)
-!                                    ! NLOWLOR resonances of Lorentzian shape, then NGIGE resonances of MGLO shape
-          TFIN=TERM(EINI-EGAM)
-          Q=0.
-          DO I=1,NLOWLOR
-            QQ=SIG(I)*(EGAM*W0(I)**2/((EGAM**2-ER(I)**2)**2+(EGAM*W0(I))**2))
-            Q=Q+QQ
-          ENDDO
-          DO I=NLOWLOR+1,NGIGE+NLOWLOR
-            WPHEN=EK0+(1.-EK0)*(EGAM-EGZERO)/(ER(I)-EGZERO)
-            W=WPHEN*W0(I)*(EGAM**2+PI42*TFIN**2)/ER(I)**2 !energy and temperature dependent width
-            SLIM=FERMC*PI42*TFIN**2*W0(I)/ER(I)**5 !the non-zero limit at Egam-->0
-            QQ=SIG(I)*W0(I)*(SLIM+EGAM*W/((EGAM**2-ER(I)**2)**2+(EGAM*W)**2))
-            Q=Q+QQ
-          ENDDO
-          SGAMMA=PIH*Q*EGAM**3
           RETURN
         ELSEIF (NOPTE1.EQ.12) THEN   ! MLO1 (Original Plujko)
 !         !tato procedura nepostihuje mozna uplne vsechny pripady (hodnoty parametru),
