@@ -356,6 +356,16 @@ integer::                             IPAR
         IF (EEXC.LE..5*PAIRING09) RETURN !pairing_ours=pairing_09
         SIGSQ=.28*AMASS**.695*(EEXC-.5*PAIRING09)**.14 !sigma dependence with modified coefficients
         DENSITY=EXP(2.*SQRT(15.00*EFEC_E))/(16.9706*SQRT(SIGSQ)*15.00**.25*EFEC_E**1.25) !a_ours=15.00
+      ELSEIF (NOPTDE.EQ.39) THEN                             ! BSFG custom for 168Er, inspired by von Egidy 09
+        EFEC_E=EEXC-DEL09                                    ! f(J,-) significantly wider at low energies
+        IF (EFEC_E.LE.0.) RETURN                             ! same width as f(J,+) at neutron sep. energy
+        IF (EEXC.LE..5*PAIRING09) RETURN
+        IF (IPAR.EQ.0) THEN
+          SIGSQ=.391*AMASS**.675*(EEXC-.5*PAIRING09)**.312
+        ELSE
+          SIGSQ=SIG_CUSTOM**2.
+        ENDIF
+        DENSITY=EXP(2.*SQRT(ASHELL09*EFEC_E))/(16.9706*SQRT(SIGSQ)*ASHELL09**.25*EFEC_E**1.25)
       ENDIF
 !
       FJ=(SPIN+.5)*EXP(-(SPIN+.5)**2/(2.*SIGSQ))/SIGSQ
