@@ -978,6 +978,7 @@ real::            EGAM,EINI
 ! TODO change the PAR_E1(1) - talk to MK about the logic of this
         ELSEIF (NOPTE1.EQ.73) THEN  ! EGLO(3) with constant T
           TFIN=TCONST
+          Q=0.
           DO I=1,NGIGE
             WPHEN=EK0+(1.-EK0)*(EGAM-EGZERO)/(ER(I)-EGZERO)
             W=WPHEN*W0(I)*(EGAM**2+PI42*TFIN**2)/ER(I)**2
