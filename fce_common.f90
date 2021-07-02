@@ -976,6 +976,19 @@ real::            EGAM,EINI
           SGAMMA=PIH*Q*EGAM**3*x
           RETURN
 ! TODO change the PAR_E1(1) - talk to MK about the logic of this
+        ELSEIF (NOPTE1.EQ.73) THEN  ! EGLO(3) with constant T
+          TFIN=TCONST
+          DO I=1,NGIGE
+            WPHEN=EK0+(1.-EK0)*(EGAM-EGZERO)/(ER(I)-EGZERO)
+            W=WPHEN*W0(I)*(EGAM**2+PI42*TFIN**2)/ER(I)**2
+            WPHENZ=EK0-(1.-EK0)*EGZERO/(ER(I)-EGZERO)
+            SLIM=WPHENZ*FERMC*PI42*TFIN**2*W0(I)/ER(I)**5
+            QQ=SIG(I)*W0(I)*(SLIM+EGAM*W/((EGAM**2-ER(I)**2)**2+(EGAM*W)**2))
+            Q=Q+QQ
+          ENDDO
+          SGAMMA=PAR_E1(1)*PIH*Q*EGAM**3
+          SFCEE1=SGAMMA
+          RETURN
         ELSEIF (NOPTE1.EQ.74) THEN   ! KMF with constant T
           TFIN=TCONST        
           Q=0.
