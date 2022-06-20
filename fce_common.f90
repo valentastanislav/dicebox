@@ -843,7 +843,22 @@ real::            EGAM,EINI
           ENDDO
           SGAMMA=PIH*Q*EGAM**3
           RETURN
-        ELSEIF (NOPTE1.EQ.7) THEN  !Empirical generelization of temperature dependent damping according to Kopecky aplied to TD model (EELO)
+        ELSEIF (NOPTE1.EQ.7) THEN   ! SMLO
+          IF (EGAM.LE.EINI) THEN
+            TFIN=SQRT((EINI-EGAM)/AMASS*10.0)
+          ELSE
+            TFIN=0.0
+          ENDIF
+          Q=0.
+          DO I=1,NGIGE
+            W=W0(I)*(EGAM*ER(I)+PI42*TFIN**2)/ER(I)**2
+            QQ=SIG(I)*W0(I)*W*EGAM / (1.0-EXP(-EGAM/TFIN))/((EGAM**2-ER(I)**2)**2+(EGAM*W)**2)
+            Q=Q+QQ
+          ENDDO
+          SGAMMA=PIH*Q*EGAM**3
+          SFCEE1=SGAMMA
+          RETURN
+        ELSEIF (NOPTE1.EQ.207) THEN  !Empirical generelization of temperature dependent damping according to Kopecky aplied to TD model (EELO)
           TFIN=TERM(EINI-EGAM)
           Q=0.
           DO I=1,NGIGE
