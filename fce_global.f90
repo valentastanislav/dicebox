@@ -1214,7 +1214,7 @@ REAL,DIMENSION(:),allocatable::    E_G
       endif
 !
 !      IERR=0
-      IF (ISWBN.LT.0.OR.ISWBN.GT.3) THEN
+      IF (ISWBN.LT.0.OR.ISWBN.GT.4) THEN
 !         IERR=1
          RETURN
       ENDIF
@@ -1263,7 +1263,16 @@ REAL,DIMENSION(:),allocatable::    E_G
              E_G(REAL_MULT)=.511
            ENDIF
          ENDDO
-         IF (REAL_MULT.GT.0) WRITE (12+ITID,700) REAL_MULT, (E_G(J),J=1,REAL_MULT) !TODO co se deje kdyz je kaskada tvorena jen elektrony
+         IF (REAL_MULT.GT.0) WRITE (12+ITID,700) REAL_MULT, (E_G(J),J=1,REAL_MULT)
+       ELSEIF (ISWBN.EQ.4) THEN !DANCE GEANT4 input format with no X-rays or anihilation gammas
+         REAL_MULT=0 ! IC_type 0 = gamma, 1 = K-shell, 2 = higher-shell, 3 = pair
+         DO J=1,NR_STEPS(IEV)
+           IF (ICQQ(IEV,J).EQ.0) THEN
+             REAL_MULT=REAL_MULT+1
+             E_G(REAL_MULT)=ELQQ(IEV,J-1)-ELQQ(IEV,J)
+           ENDIF
+         ENDDO
+         IF (REAL_MULT.GT.0) WRITE (12+ITID,700) REAL_MULT, (E_G(J),J=1,REAL_MULT)
        ELSEIF (ISWBN.EQ.3) THEN !TAC @ n_TOF tabuled GEANT4 input format
          REAL_MULT=0
          DO J=1,NR_STEPS(IEV)
