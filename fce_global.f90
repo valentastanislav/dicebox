@@ -188,6 +188,8 @@ REAL::                  enrg,spfi,enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,F
 !     now read the rest - input itself
       READ (5,*) (ELEN_IPF(K),K=1+3,NEN_IPF+3)
       READ (5,*) (((CONV_IPF(I,J,K),I=0,1),J=1,3),K=1+3,NEN_IPF+3)
+!     now tell the code we've added 3 energies
+      NEN_IPF=NEN_IPF+3
 !
 !     Data related to the discrete levels (J, pi, Eexc, primary intensities
 !     and branchings):
