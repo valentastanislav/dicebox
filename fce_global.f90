@@ -173,14 +173,21 @@ REAL::                  enrg,spfi,enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,F
       READ (5,*) (((CONVK(I,J,K),I=0,1),J=1,NMU),K=1+3,NENK+3)
 !     now tell the code we've added 3 energies
       NENK=NENK+3
-
-      do K=1,NENK
-        write(*,*) K,ELENK(K), CONVK(0,1,K)
-      enddo
-!      
+!     Let's handle alpha_IPF now
+!     number of energies
       READ (5,*) NEN_IPF
-      READ (5,*) (ELEN_IPF(K),K=1,NEN_IPF)
-      READ (5,*) (((CONV_IPF(I,J,K),I=0,1),J=1,3),K=1,NEN_IPF)
+!     add 3 energies to the beginning (corresponding to below threshold) and put zeroes to the coefficients
+      DO K=1,3
+        ELEN_IPF(K)=ELENT(NENT-NEN_IPF-3+K)
+        DO I=0,1
+          DO J=1,NMU
+            CONV_IPF(I,J,K)=0.0E+00
+          ENDDO
+        ENDDO
+      ENDDO
+!     now read the rest - input itself
+      READ (5,*) (ELEN_IPF(K),K=1+3,NEN_IPF+3)
+      READ (5,*) (((CONV_IPF(I,J,K),I=0,1),J=1,3),K=1+3,NEN_IPF+3)
 !
 !     Data related to the discrete levels (J, pi, Eexc, primary intensities
 !     and branchings):
