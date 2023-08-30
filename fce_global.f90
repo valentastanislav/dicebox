@@ -156,9 +156,28 @@ REAL::                  enrg,spfi,enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,F
       READ (5,*) NENT
       READ (5,*) (ELENT(K),K=1,NENT)
       READ (5,*) (((CONVT(I,J,K),I=0,1),J=1,NMU),K=1,NENT)
+!     Let's handle alpha_K now
+!     number of energies
       READ (5,*) NENK
-      READ (5,*) (ELENK(K),K=1,NENK)
-      READ (5,*) (((CONVK(I,J,K),I=0,1),J=1,NMU),K=1,NENK)
+!     add 3 energies to the beginning (corresponding to below threshold) and put zeroes to the coefficients
+      DO K=1,3
+        ELENK(K)=ELENT(NENT-NENK-3+K)
+        DO I=0,1
+          DO J=1,NMU
+            CONVK(I,J,K)=0.0E+00
+          ENDDO
+        ENDDO
+      ENDDO
+!     now read the rest - input itself
+      READ (5,*) (ELENK(K),K=1+3,NENK+3)
+      READ (5,*) (((CONVK(I,J,K),I=0,1),J=1,NMU),K=1+3,NENK+3)
+!     now tell the code we've added 3 energies
+      NENK=NENK+3
+
+      do K=1,NENK
+        write(*,*) K,ELENK(K), CONVK(0,1,K)
+      enddo
+!      
       READ (5,*) NEN_IPF
       READ (5,*) (ELEN_IPF(K),K=1,NEN_IPF)
       READ (5,*) (((CONV_IPF(I,J,K),I=0,1),J=1,3),K=1,NEN_IPF)
@@ -167,8 +186,7 @@ REAL::                  enrg,spfi,enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,F
 !     and branchings):
 !
       READ (5,*)
-      READ (5,*) ECRIT
-      EALL=ECRIT
+      READ (5,*) EALL,ECRIT ! od ground state do EALL zname "uplne" vsechno o hladinach, mezi EALL a ECRIT "jen" energie, spin a paritu, a statisticky (do)generujeme jejich rozpad
       read (5,*)
       LOpopGS=.false.
       DO J=0,MAXJC
@@ -178,7 +196,7 @@ REAL::                  enrg,spfi,enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,F
       ENDDO
       max_decays=0
       max_spin=0.
-      READ (5,*) numlev
+      READ (5,*) numlev !TODO zde bude druha promenna udavajici pocet hladin mezi EALL a ECRIT
       if (.not.allocated(ityp)) then
         allocate (ityp(1:numlev,1:2))
       endif  
