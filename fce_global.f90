@@ -849,7 +849,7 @@ integer,dimension(:,:,:,:),allocatable::ISDIS
          IF (MODE.EQ.0) THEN
           G=GAUSS(ISEED,U,IFLAG)
           Z=Z+G*G*SIMPL(ITT-IT1+1)
-          GG(ITT-IT1+1)=G
+          GG(ITT-IT1+1)=G*G*SIMPL(ITT-IT1+1)
          ELSE                                 !Primary transitions
 !          G1=GAUSS(ISEED)
 !          G2=GAUSS(ISEED)+CORRI(MODE)*G1
@@ -859,12 +859,20 @@ integer,dimension(:,:,:,:),allocatable::ISDIS
           Z=Z+GSQ*SIMPL(ITT-IT1+1)
 !          GG(ITT-IT1+1)=sqrt(GSQ)
 !          IF (G1.LT.0) GG(ITT-IT1+1)=-1.*GG(ITT-IT1+1)
-          GG(ITT-IT1+1)=SQRT(GSQ)
+          GG(ITT-IT1+1)=GSQ*SIMPL(ITT-IT1+1)
          ENDIF
         ELSE
           Z=Z+SIMPL(ITT-IT1+1)
+          GG(ITT-IT1+1)=SIMPL(ITT-IT1+1)
         ENDIF
        ENDDO !ITT
+       IF (GG(1).GT.0.0) THEN
+         DMIX2 = GG(2) / GG(1)
+       ELSE
+         DMIX2 = 0.0
+       ENDIF
+       alpha = ALPH_TOT(EG,spfi,ipfi,0.0,spin,ipin,DMIX2,nent,elent,convt)
+       Z = Z * (1 + alpha)
        IF ((AUX0+DBLE(Z*SPAC)).GT.DRN) GOTO 9
       ENDDO !IL
       GO TO 5
