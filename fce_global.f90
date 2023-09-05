@@ -515,7 +515,7 @@ integer,dimension(:),allocatable::    IRCONc,IRCON
           IAUX(N)=K
         ENDIF
       ENDDO
-      IF (N.NE.NOLD) WRITE(*,*) 'pruser velikost'  !debug line
+      IF (N.NE.NOLD) WRITE(*,*) 'prusvih velikost'  !debug line
       DO KAUX=1,NOLD
         I=INT(FLOAT(N)*RAN0(IR))+1
         dummy=RAN0(IR)
@@ -525,7 +525,7 @@ integer,dimension(:),allocatable::    IRCONc,IRCON
         ENDDO
         N=N-1
       ENDDO
-      IF (N.NE.0) WRITE(*,*) 'pruser nenulovost'  !debug line
+      IF (N.NE.0) WRITE(*,*) 'prusvih nenulovost'  !debug line
     7 IF (NLINc.NE.1) THEN
         dummy=RAN0(IR)
         IRCONc(2)=IR         ! 2nd capture state is now seeded
@@ -573,8 +573,8 @@ integer,dimension(:),allocatable::    IRCONc,IRCON
 integer,dimension(:,:,:),allocatable::LEVCON
 integer,dimension(:,:,:,:),allocatable::ISDIS
 INTEGER::                             IPFI,ISPFI,ISP,IP,IS,I,NLEV,ISEED,ISEEDGS,ISEEDORIG,ISBS,IT,IT1,IT2,ITT,IL,NL,ICOR
-REAL::                                SPFI,Q,SPAC,GGS,SP,EG,Z,GSQ,G,CLEB
-REAL,dimension(1:2)::                 SIMPL
+REAL::                                SPFI,Q,SPAC,SP,EG,Z,GSQ,G,CLEB,alpha,DMIX2
+REAL,dimension(1:2)::                 SIMPL,GG
 !globalni NOPTFL,DELTA,corri,re2res,im2res,NDIS,ENDIS,BN,NBIN
 !
 !     If you use MODE=1 or 2 you have to set IBIN=1 and ILIN=1 !
@@ -591,7 +591,7 @@ REAL,dimension(1:2)::                 SIMPL
         IF (NOPTFL.GE.1) ISEED=SEEDS(MODE,SPIN,IPIN,ILIN,IBIN,LEVCON,IRCON,IRCONc) !originaly .EQ.
       ELSE
         EIN=EFI
-      ENDIF
+      ENDIF !end IF (IREGI.EQ.0) THEN
       SPAC=1./DENSITY(EIN,SPIN,IPIN)
       IF (SPAC.LE.0.0) SPAC=0.0000001  !nikdy byt nemusi
       TOTCON(MODE)=0.D+0
@@ -603,14 +603,14 @@ REAL,dimension(1:2)::                 SIMPL
          STCON(MODE,I,IS,IP)=0.D+0
         ENDDO
 !        IF (MODE.EQ.0) THEN !what the hell
-         DO I=0,20
-          STDIS(MODE,I,IS,IP)=0.
-         ENDDO
+        DO I=0,20
+         STDIS(MODE,I,IS,IP)=0.
+        ENDDO
 !        ENDIF
         GACON(MODE,IS,IP)=0.D+0
         GADIS(MODE,IS,IP)=0.
-       ENDDO
-      ENDDO
+       ENDDO !IP
+      ENDDO !IS
 !
       SP  = SPIN - INT(SPIN + .25)
       ISP = INT(SPIN + .25)
@@ -643,7 +643,15 @@ REAL,dimension(1:2)::                 SIMPL
        IF (NOPTFL.LT.1) THEN !originaly .NE.
         DO ITT=IT1,IT2
          Z=Z+FLOAT(NL)*SIMPL(ITT-IT1+1)
+         GG(ITT-IT1+1)=FLOAT(NL)*SIMPL(ITT-IT1+1)
         ENDDO
+        IF (GG(1).GT.0.0) THEN
+         DMIX2 = GG(2) / GG(1)
+        ELSE
+         DMIX2 = 0.0
+        ENDIF
+        alpha = ALPH_TOT(EG,spfi,ipfi,0.0,spin,ipin,DMIX2,nent,elent,convt)
+        Z = Z + (1. + alpha) * (GG(1)+GG(2))
        ELSE  !TODO modify for chi2 with more DOF
         ISCON(MODE,I,ISBS,IPFI)=ISEED
         IFLAG=0
@@ -651,15 +659,31 @@ REAL,dimension(1:2)::                 SIMPL
          DO IL=1,NL  !neprobehne kdyz NL je 0, coz ma za nasledek nulovou intenzitu do prazdnych binu
           DO ITT=IT1,IT2
            G=GAUSS(ISEED,U,IFLAG)
-           Z=Z+G*G*SIMPL(ITT-IT1+1)
+          !  Z=Z+G*G*SIMPL(ITT-IT1+1)
+           GG(ITT-IT1+1)=G*G*SIMPL(ITT-IT1+1)
           ENDDO
+          IF (GG(1).GT.0.0) THEN
+           DMIX2 = GG(2) / GG(1)
+          ELSE
+           DMIX2 = 0.0
+          ENDIF
+          alpha = ALPH_TOT(EG,spfi,ipfi,0.0,spin,ipin,DMIX2,nent,elent,convt)
+          Z = Z + (1. + alpha) * (GG(1)+GG(2))
          ENDDO  !IL
         ELSE                    ! Primary transitions (the same fluctuation)
          DO IL=1,NL
           DO ITT=IT1,IT2
            GSQ=CHISQR(NOPTFL,ISEED,U,IFLAG) !originaly GSQ=GAUSS(ISEED,U,IFLAG)
-           Z=Z+GSQ*SIMPL(ITT-IT1+1)
+          !  Z=Z+GSQ*SIMPL(ITT-IT1+1)
+           GG(ITT-IT1+1)=GSQ*SIMPL(ITT-IT1+1)
           ENDDO
+          IF (GG(1).GT.0.0) THEN
+           DMIX2 = GG(2) / GG(1)
+          ELSE
+           DMIX2 = 0.0
+          ENDIF
+          alpha = ALPH_TOT(EG,spfi,ipfi,0.0,spin,ipin,DMIX2,nent,elent,convt)
+          Z = Z + (1. + alpha) * (GG(1)+GG(2))
          ENDDO  !IL
         ENDIF
        ENDIF
@@ -702,9 +726,17 @@ REAL,dimension(1:2)::                 SIMPL
         IF (MODE.EQ.0) THEN
          DO ITT=IT1,IT2
           G=GAUSS(ISEED,U,IFLAG)
-          Z=Z+G*G*SIMPL(ITT-IT1+1)
+          ! Z=Z+G*G*SIMPL(ITT-IT1+1)
+          GG(ITT-IT1+1)=G*G*SIMPL(ITT-IT1+1)
          ENDDO
-        ELSE                    ! Primary transitions (the same fluctuation)
+         IF (GG(1).GT.0.0) THEN
+          DMIX2 = GG(2) / GG(1)
+         ELSE
+          DMIX2 = 0.0
+         ENDIF
+         alpha = ALPH_TOT(EG,spfi,ipfi,0.0,spin,ipin,DMIX2,nent,elent,convt)
+         Z = Z + (1. + alpha) * (GG(1)+GG(2))
+        ELSE !MODE.NE.0             ! Primary transitions (the same fluctuation)
          DO ITT=IT1,IT2
 !          G1=GAUSS(ISEED)
 !          G2=GAUSS(ISEED)+CORRI(MODE)*G1
@@ -712,13 +744,29 @@ REAL,dimension(1:2)::                 SIMPL
 !     *         Im2Res(mode)*G1*G1)/(Re2Res(mode)+Im2Res(mode))
           GSQ=CHISQR(NOPTFL,ISEED,U,IFLAG) !originaly GSQ=GAUSS(ISEED,U,IFLAG)
           Z=Z+GSQ*SIMPL(ITT-IT1+1)
+          GG(ITT-IT1+1)=GSQ*SIMPL(ITT-IT1+1)
          ENDDO
-        ENDIF
-       ELSE
+         IF (GG(1).GT.0.0) THEN
+          DMIX2 = GG(2) / GG(1)
+         ELSE
+          DMIX2 = 0.0
+         ENDIF
+         alpha = ALPH_TOT(EG,spfi,ipfi,0.0,spin,ipin,DMIX2,nent,elent,convt)
+         Z = Z + (1. + alpha) * (GG(1)+GG(2))
+        ENDIF !end of MODE.EQ.0
+       ELSE ! in IF (NOPTFL.GE.1) THEN
         DO ITT=IT1,IT2
          Z=Z+SIMPL(ITT-IT1+1)
+         GG(ITT-IT1+1)=SIMPL(ITT-IT1+1)
         ENDDO
-       ENDIF
+        IF (GG(1).GT.0.0) THEN
+         DMIX2 = GG(2) / GG(1)
+        ELSE
+         DMIX2 = 0.0
+        ENDIF
+        alpha = ALPH_TOT(EG,spfi,ipfi,0.0,spin,ipin,DMIX2,nent,elent,convt)
+        Z = Z + (1. + alpha) * (GG(1)+GG(2))
+       ENDIF !end of IF (NOPTFL.GE.1) THEN
 !
 !       IF (IT.EQ.1) THEN
 !         GE1=GE1+Z
@@ -741,6 +789,7 @@ REAL,dimension(1:2)::                 SIMPL
       ENDDO !I=1,NDIS
       
    22 TOTCON(MODE)=TOTCON(MODE)+STCON(MODE,NBIN,ISBS,IPFI)
+      WRITE(*,*) STCON(MODE,NBIN,ISBS,IPFI)
       GACON(MODE,ISBS,IPFI)=TOTCON(MODE)
       TOTDIS(MODE)=TOTDIS(MODE)+STDIS(MODE,NDIS(ISUBSC(SPFI),IPFI),ISBS,IPFI)
       GADIS(MODE,ISBS,IPFI)=TOTDIS(MODE)
@@ -749,6 +798,7 @@ REAL,dimension(1:2)::                 SIMPL
     1     CONTINUE
         ENDDO
       ENDDO
+      WRITE(*,*) ':', MODE, TOTCON(MODE)
       RETURN
 END SUBROUTINE WIDTHS_R
 !***********************************************************************      
@@ -779,8 +829,6 @@ integer,dimension(:,:,:,:),allocatable::ISDIS
       IF (SPAC.LE.0.0) SPAC=0.00001
 !
     5 DRN=(DBLE(INT(DBLE(RAN0(IR))/1.D-4))+DBLE(RAN0(IR)))*1.D-4*(TOTCON(MODE)+DBLE(TOTDIS(MODE)))
-!      WRITE(*,*) MODE,TOTDIS(MODE),TOTCON(MODE)
-!      READ(*,*) MODE
       IF (DRN-TOTCON(MODE)) 1,2,2
 !
 !     Label #1 means that the transition ends in the continuum; this
@@ -857,8 +905,6 @@ integer,dimension(:,:,:,:),allocatable::ISDIS
 !     *         Im2Res(mode)*G1*G1)/(Re2Res(mode)+Im2Res(mode))
           GSQ=CHISQR(NOPTFL,ISEED,U,IFLAG) !originaly GSQ=GAUSS(ISEED,U,IFLAG)
           Z=Z+GSQ*SIMPL(ITT-IT1+1)
-!          GG(ITT-IT1+1)=sqrt(GSQ)
-!          IF (G1.LT.0) GG(ITT-IT1+1)=-1.*GG(ITT-IT1+1)
           GG(ITT-IT1+1)=GSQ*SIMPL(ITT-IT1+1)
          ENDIF
         ELSE
@@ -872,7 +918,7 @@ integer,dimension(:,:,:,:),allocatable::ISDIS
          DMIX2 = 0.0
        ENDIF
        alpha = ALPH_TOT(EG,spfi,ipfi,0.0,spin,ipin,DMIX2,nent,elent,convt)
-       Z = Z * (1 + alpha)
+       Z = Z + (1. + alpha) * (GG(1)+GG(2))
        IF ((AUX0+DBLE(Z*SPAC)).GT.DRN) GOTO 9
       ENDDO !IL
       GO TO 5

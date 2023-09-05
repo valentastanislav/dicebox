@@ -207,6 +207,7 @@ real,dimension(:,:),allocatable:: COVAP,COVAS
           CALL WIDTHS_R(ILINc,IPINC,SPINC(ILINc),IBIN,ILIN,TOTCON,STCON,GACON,ISCON,TOTDIS,STDIS,GADIS,&
                         ISDIS,LEVCON,IRCON,IRCONc,IFLAG,U,IREGI,EIN,EFI)
         ENDDO
+        WRITE(*,*) ',', TOTCON(1)
         DO ILINc=1,NLINc
           RADW(NUC,ISUB)=RADW(NUC,ISUB)+sngl(TOTCON(ILINc))+TOTDIS(ILINc)
         ENDDO
@@ -233,10 +234,11 @@ real,dimension(:,:),allocatable:: COVAP,COVAS
           IREGI=0
           IBIN=0
           ILIN=1
+          WRITE(*,*) '.', TOTCON(ILINc)
           CALL ONESTEP(ILINc,IPINC,SPINC(ILINc),IBIN,ILIN,TOTCON,STCON,GACON,ISCON,TOTDIS,STDIS,GADIS,&
                        ISDIS,IPFI,SPFI,IBFI,ILFI,DMIX2,sign,IR3,IR4,LEVCON,sall,U,IFLAG,EIN,EFI,IREGI,&
                        IC_type,IRCON,IRCONc)
-!          WRITE(*,*) '..'
+          WRITE(*,*) '..'
           DO WHILE (EFI.GT.0.)
             ELQQ(IEV,steps)=EFI
             SPQQ(IEV,steps)=SPFI
