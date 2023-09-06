@@ -645,6 +645,7 @@ REAL,dimension(1:2)::                 SIMPL,GG
          Z=Z+FLOAT(NL)*SIMPL(ITT-IT1+1)
          GG(ITT-IT1+1)=FLOAT(NL)*SIMPL(ITT-IT1+1)
         ENDDO
+        !TODO can I get a decent speed back when I introduce some IFs here?
         IF (GG(1).GT.0.0) THEN
          DMIX2 = GG(2) / GG(1)
         ELSE
@@ -662,13 +663,16 @@ REAL,dimension(1:2)::                 SIMPL,GG
           !  Z=Z+G*G*SIMPL(ITT-IT1+1)
            GG(ITT-IT1+1)=G*G*SIMPL(ITT-IT1+1)
           ENDDO
-          IF (GG(1).GT.0.0) THEN
-           DMIX2 = GG(2) / GG(1)
-          ELSE
-           DMIX2 = 0.0
+          !TODO can I get a decent speed back when I introduce some IFs here?
+          IF ((GG(2).GT.0.0).OR.(GG(1).GT.0.0)) THEN
+            IF (GG(1).GT.0.0) THEN
+             DMIX2 = GG(2) / GG(1)
+            ELSE
+             DMIX2 = 0.0
+            ENDIF
+            alpha = ALPH_TOT(EG,spfi,ipfi,0.0,spin,ipin,DMIX2,nent,elent,convt)
+            Z = Z + (1. + alpha) * (GG(1)+GG(2))
           ENDIF
-          alpha = ALPH_TOT(EG,spfi,ipfi,0.0,spin,ipin,DMIX2,nent,elent,convt)
-          Z = Z + (1. + alpha) * (GG(1)+GG(2))
          ENDDO  !IL
         ELSE                    ! Primary transitions (the same fluctuation)
          DO IL=1,NL
@@ -677,16 +681,18 @@ REAL,dimension(1:2)::                 SIMPL,GG
           !  Z=Z+GSQ*SIMPL(ITT-IT1+1)
            GG(ITT-IT1+1)=GSQ*SIMPL(ITT-IT1+1)
           ENDDO
-          IF (GG(1).GT.0.0) THEN
-           DMIX2 = GG(2) / GG(1)
-          ELSE
-           DMIX2 = 0.0
+          IF ((GG(2).GT.0.0).OR.(GG(1).GT.0.0)) THEN
+            IF (GG(1).GT.0.0) THEN
+              DMIX2 = GG(2) / GG(1)
+            ELSE
+              DMIX2 = 0.0
+            ENDIF
+            alpha = ALPH_TOT(EG,spfi,ipfi,0.0,spin,ipin,DMIX2,nent,elent,convt)
+            Z = Z + (1. + alpha) * (GG(1)+GG(2))
           ENDIF
-          alpha = ALPH_TOT(EG,spfi,ipfi,0.0,spin,ipin,DMIX2,nent,elent,convt)
-          Z = Z + (1. + alpha) * (GG(1)+GG(2))
          ENDDO  !IL
-        ENDIF
-       ENDIF
+        ENDIF !IF (MODE.EQ.0)
+       ENDIF !IF (NOPTFL.LT.1)
 !
 !  fix equivalent to NL.EQ.0 cause of construction of Z
        IF (DENSITY(EIN,SPIN,IPIN).GT.0.0) THEN
@@ -912,13 +918,15 @@ integer,dimension(:,:,:,:),allocatable::ISDIS
           GG(ITT-IT1+1)=SIMPL(ITT-IT1+1)
         ENDIF
        ENDDO !ITT
-       IF (GG(1).GT.0.0) THEN
-         DMIX2 = GG(2) / GG(1)
-       ELSE
-         DMIX2 = 0.0
+       IF ((GG(2).GT.0.0).OR.(GG(1).GT.0.0)) THEN
+         IF (GG(1).GT.0.0) THEN
+           DMIX2 = GG(2) / GG(1)
+         ELSE
+           DMIX2 = 0.0
+         ENDIF
+         alpha = ALPH_TOT(EG,spfi,ipfi,0.0,spin,ipin,DMIX2,nent,elent,convt)
+         Z = Z + (1. + alpha) * (GG(1)+GG(2))
        ENDIF
-       alpha = ALPH_TOT(EG,spfi,ipfi,0.0,spin,ipin,DMIX2,nent,elent,convt)
-       Z = Z + (1. + alpha) * (GG(1)+GG(2))
        IF ((AUX0+DBLE(Z*SPAC)).GT.DRN) GOTO 9
       ENDDO !IL
       GO TO 5
