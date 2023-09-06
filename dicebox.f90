@@ -234,11 +234,9 @@ real,dimension(:,:),allocatable:: COVAP,COVAS
           IREGI=0
           IBIN=0
           ILIN=1
-          WRITE(*,*) '.', TOTCON(ILINc)
           CALL ONESTEP(ILINc,IPINC,SPINC(ILINc),IBIN,ILIN,TOTCON,STCON,GACON,ISCON,TOTDIS,STDIS,GADIS,&
                        ISDIS,IPFI,SPFI,IBFI,ILFI,DMIX2,sign,IR3,IR4,LEVCON,sall,U,IFLAG,EIN,EFI,IREGI,&
                        IC_type,IRCON,IRCONc)
-          WRITE(*,*) '..'
           DO WHILE (EFI.GT.0.)
             ELQQ(IEV,steps)=EFI
             SPQQ(IEV,steps)=SPFI
