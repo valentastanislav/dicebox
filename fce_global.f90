@@ -642,7 +642,6 @@ REAL,dimension(1:2)::                 SIMPL,GG
        ENDDO
        IF (NOPTFL.LT.1) THEN !originaly .NE.
         DO ITT=IT1,IT2
-         Z=Z+FLOAT(NL)*SIMPL(ITT-IT1+1)
          GG(ITT-IT1+1)=FLOAT(NL)*SIMPL(ITT-IT1+1)
         ENDDO
         !TODO can I get a decent speed back when I introduce some IFs here?
@@ -660,7 +659,6 @@ REAL,dimension(1:2)::                 SIMPL,GG
          DO IL=1,NL  !neprobehne kdyz NL je 0, coz ma za nasledek nulovou intenzitu do prazdnych binu
           DO ITT=IT1,IT2
            G=GAUSS(ISEED,U,IFLAG)
-          !  Z=Z+G*G*SIMPL(ITT-IT1+1)
            GG(ITT-IT1+1)=G*G*SIMPL(ITT-IT1+1)
           ENDDO
           !TODO can I get a decent speed back when I introduce some IFs here?
@@ -678,7 +676,6 @@ REAL,dimension(1:2)::                 SIMPL,GG
          DO IL=1,NL
           DO ITT=IT1,IT2
            GSQ=CHISQR(NOPTFL,ISEED,U,IFLAG) !originaly GSQ=GAUSS(ISEED,U,IFLAG)
-          !  Z=Z+GSQ*SIMPL(ITT-IT1+1)
            GG(ITT-IT1+1)=GSQ*SIMPL(ITT-IT1+1)
           ENDDO
           IF ((GG(2).GT.0.0).OR.(GG(1).GT.0.0)) THEN
@@ -732,7 +729,6 @@ REAL,dimension(1:2)::                 SIMPL,GG
         IF (MODE.EQ.0) THEN
          DO ITT=IT1,IT2
           G=GAUSS(ISEED,U,IFLAG)
-          ! Z=Z+G*G*SIMPL(ITT-IT1+1)
           GG(ITT-IT1+1)=G*G*SIMPL(ITT-IT1+1)
          ENDDO
          IF (GG(1).GT.0.0) THEN
@@ -749,7 +745,6 @@ REAL,dimension(1:2)::                 SIMPL,GG
 !          GSQ=(Re2Res(mode)*G2*G2/(1+CORRI(mode)**2)+
 !     *         Im2Res(mode)*G1*G1)/(Re2Res(mode)+Im2Res(mode))
           GSQ=CHISQR(NOPTFL,ISEED,U,IFLAG) !originaly GSQ=GAUSS(ISEED,U,IFLAG)
-          Z=Z+GSQ*SIMPL(ITT-IT1+1)
           GG(ITT-IT1+1)=GSQ*SIMPL(ITT-IT1+1)
          ENDDO
          IF (GG(1).GT.0.0) THEN
@@ -762,7 +757,6 @@ REAL,dimension(1:2)::                 SIMPL,GG
         ENDIF !end of MODE.EQ.0
        ELSE ! in IF (NOPTFL.GE.1) THEN
         DO ITT=IT1,IT2
-         Z=Z+SIMPL(ITT-IT1+1)
          GG(ITT-IT1+1)=SIMPL(ITT-IT1+1)
         ENDDO
         IF (GG(1).GT.0.0) THEN
@@ -900,7 +894,6 @@ integer,dimension(:,:,:,:),allocatable::ISDIS
         IF (NOPTFL.GE.1) THEN !originaly .EQ.
          IF (MODE.EQ.0) THEN
           G=GAUSS(ISEED,U,IFLAG)
-          Z=Z+G*G*SIMPL(ITT-IT1+1)
           GG(ITT-IT1+1)=G*G*SIMPL(ITT-IT1+1)
          ELSE                                 !Primary transitions
 !          G1=GAUSS(ISEED)
@@ -908,11 +901,9 @@ integer,dimension(:,:,:,:),allocatable::ISDIS
 !          GSQ=(Re2Res(mode)*G2*G2/(1+CORRI(mode)**2)+
 !     *         Im2Res(mode)*G1*G1)/(Re2Res(mode)+Im2Res(mode))
           GSQ=CHISQR(NOPTFL,ISEED,U,IFLAG) !originaly GSQ=GAUSS(ISEED,U,IFLAG)
-          Z=Z+GSQ*SIMPL(ITT-IT1+1)
           GG(ITT-IT1+1)=GSQ*SIMPL(ITT-IT1+1)
          ENDIF
         ELSE
-          Z=Z+SIMPL(ITT-IT1+1)
           GG(ITT-IT1+1)=SIMPL(ITT-IT1+1)
         ENDIF
        ENDDO !ITT
