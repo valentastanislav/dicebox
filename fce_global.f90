@@ -641,6 +641,7 @@ REAL,dimension(1:2)::                 SIMPL,GG
         SIMPL(ITT-IT1+1)=SGAMMA(EG,EIN,ITT)
        ENDDO
        IF (NOPTFL.LT.1) THEN !originaly .NE.
+        GG(2)=0.0
         DO ITT=IT1,IT2
          GG(ITT-IT1+1)=FLOAT(NL)*SIMPL(ITT-IT1+1)
         ENDDO
@@ -650,6 +651,7 @@ REAL,dimension(1:2)::                 SIMPL,GG
         IFLAG=0
         IF (MODE.EQ.0) THEN
          DO IL=1,NL  !neprobehne kdyz NL je 0, coz ma za nasledek nulovou intenzitu do prazdnych binu
+          GG(2)=0.0
           DO ITT=IT1,IT2
            G=GAUSS(ISEED,U,IFLAG)
            GG(ITT-IT1+1)=G*G*SIMPL(ITT-IT1+1)
@@ -658,6 +660,7 @@ REAL,dimension(1:2)::                 SIMPL,GG
          ENDDO  !IL
         ELSE                    ! Primary transitions (the same fluctuation)
          DO IL=1,NL
+          GG(2)=0.0
           DO ITT=IT1,IT2
            GSQ=CHISQR(NOPTFL,ISEED,U,IFLAG) !originaly GSQ=GAUSS(ISEED,U,IFLAG)
            GG(ITT-IT1+1)=GSQ*SIMPL(ITT-IT1+1)
@@ -703,12 +706,14 @@ REAL,dimension(1:2)::                 SIMPL,GG
        ENDDO
        IF (NOPTFL.GE.1) THEN !originaly .EQ.
         IF (MODE.EQ.0) THEN
+         GG(2)=0.0
          DO ITT=IT1,IT2
           G=GAUSS(ISEED,U,IFLAG)
           GG(ITT-IT1+1)=G*G*SIMPL(ITT-IT1+1)
          ENDDO
          Z = Z + (GG(1)+GG(2))
         ELSE !MODE.NE.0             ! Primary transitions (the same fluctuation)
+         GG(2)=0.0
          DO ITT=IT1,IT2
 !          G1=GAUSS(ISEED)
 !          G2=GAUSS(ISEED)+CORRI(MODE)*G1
@@ -720,6 +725,7 @@ REAL,dimension(1:2)::                 SIMPL,GG
          Z = Z + (GG(1)+GG(2))
         ENDIF !end of MODE.EQ.0
        ELSE ! in IF (NOPTFL.GE.1) THEN
+        GG(2)=0.0
         DO ITT=IT1,IT2
          GG(ITT-IT1+1)=SIMPL(ITT-IT1+1)
         ENDDO
@@ -849,6 +855,7 @@ integer,dimension(:,:,:,:),allocatable::ISDIS
       ENDDO
       DO IL=1,NL
        DO ITT=IT1,IT2
+        GG(2)=0.0
         IF (NOPTFL.GE.1) THEN !originaly .EQ.
          IF (MODE.EQ.0) THEN
           G=GAUSS(ISEED,U,IFLAG)
@@ -965,11 +972,13 @@ integer,dimension(:,:,:,:),allocatable::ISDIS
       ENDDO
       IF (NOPTFL.GE.1) THEN  !originaly .EQ. ,TODO modify for chi2 with more DOF
        IF (MODE.EQ.0) THEN
+        GG(2)=0.0
         DO ITT=IT1,IT2
          G=GAUSS(ISEED,U,IFLAG)
          GG(ITT-IT1+1)=G
         ENDDO
        ELSE                             !Primary transitions
+        GG(2)=0.0
         DO ITT=IT1,IT2
 !         G1=GAUSS(ISEED)
 !         G2=GAUSS(ISEED)+CORRI(MODE)*G1
