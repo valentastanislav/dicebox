@@ -207,7 +207,6 @@ real,dimension(:,:),allocatable:: COVAP,COVAS
           CALL WIDTHS_R(ILINc,IPINC,SPINC(ILINc),IBIN,ILIN,TOTCON,STCON,GACON,ISCON,TOTDIS,STDIS,GADIS,&
                         ISDIS,LEVCON,IRCON,IRCONc,IFLAG,U,IREGI,EIN,EFI)
         ENDDO
-        WRITE(*,*) ',', TOTCON(1)
         DO ILINc=1,NLINc
           RADW(NUC,ISUB)=RADW(NUC,ISUB)+sngl(TOTCON(ILINc))+TOTDIS(ILINc)
         ENDDO

@@ -803,7 +803,6 @@ REAL,dimension(1:2)::                 SIMPL,GG
     1     CONTINUE
         ENDDO
       ENDDO
-      WRITE(*,*) ':', MODE, TOTCON(MODE)
       RETURN
 END SUBROUTINE WIDTHS_R
 !***********************************************************************      
