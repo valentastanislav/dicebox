@@ -593,7 +593,7 @@ REAL,dimension(1:2)::                 SIMPL,GG
         EIN=EFI
       ENDIF !end IF (IREGI.EQ.0) THEN
       SPAC=1./DENSITY(EIN,SPIN,IPIN)
-      IF (SPAC.LE.0.0) SPAC=0.0000001  !nikdy byt nemusi
+      IF (SPAC.LE.0.0) SPAC=0.0000001  !nikdy byt nemusi, 0.1eV
       TOTCON(MODE)=0.D+0
       TOTDIS(MODE)=0.
 !
@@ -641,32 +641,34 @@ REAL,dimension(1:2)::                 SIMPL,GG
         SIMPL(ITT-IT1+1)=SGAMMA(EG,EIN,ITT)
        ENDDO
        IF (NOPTFL.LT.1) THEN !originaly .NE.
+        GG(2)=0.0
         DO ITT=IT1,IT2
          GG(ITT-IT1+1)=FLOAT(NL)*SIMPL(ITT-IT1+1)
         ENDDO
-        !TODO can I get a decent speed back when I introduce some IFs here?
-        IF (GG(1).GT.0.0) THEN
-         DMIX2 = GG(2) / GG(1)
-        ELSE
-         DMIX2 = 0.0
+        IF ((GG(1).GT.0.0).OR.(GG(2).GT.0.0)) THEN !TODO can I get a decent speed back when I introduce some IFs here?
+          IF (GG(1).GT.0.0) THEN
+            DMIX2 = GG(2) / GG(1)
+          ELSE
+            DMIX2 = 0.0
+          ENDIF
+          alpha = ALPH_TOT(EG,spfi,ipfi,0.0,spin,ipin,DMIX2,nent,elent,convt)
+          Z = Z + (1. + alpha) * (GG(1)+GG(2))
         ENDIF
-        alpha = ALPH_TOT(EG,spfi,ipfi,0.0,spin,ipin,DMIX2,nent,elent,convt)
-        Z = Z + (1. + alpha) * (GG(1)+GG(2))
        ELSE  !TODO modify for chi2 with more DOF
         ISCON(MODE,I,ISBS,IPFI)=ISEED
         IFLAG=0
         IF (MODE.EQ.0) THEN
          DO IL=1,NL  !neprobehne kdyz NL je 0, coz ma za nasledek nulovou intenzitu do prazdnych binu
+          GG(2)=0.0
           DO ITT=IT1,IT2
            G=GAUSS(ISEED,U,IFLAG)
            GG(ITT-IT1+1)=G*G*SIMPL(ITT-IT1+1)
           ENDDO
-          !TODO can I get a decent speed back when I introduce some IFs here?
-          IF ((GG(2).GT.0.0).OR.(GG(1).GT.0.0)) THEN
+          IF ((GG(2).GT.0.0).OR.(GG(1).GT.0.0)) THEN !TODO can I get a decent speed back when I introduce some IFs here?
             IF (GG(1).GT.0.0) THEN
-             DMIX2 = GG(2) / GG(1)
+              DMIX2 = GG(2) / GG(1)
             ELSE
-             DMIX2 = 0.0
+              DMIX2 = 0.0
             ENDIF
             alpha = ALPH_TOT(EG,spfi,ipfi,0.0,spin,ipin,DMIX2,nent,elent,convt)
             Z = Z + (1. + alpha) * (GG(1)+GG(2))
@@ -674,11 +676,12 @@ REAL,dimension(1:2)::                 SIMPL,GG
          ENDDO  !IL
         ELSE                    ! Primary transitions (the same fluctuation)
          DO IL=1,NL
+          GG(2)=0.0
           DO ITT=IT1,IT2
            GSQ=CHISQR(NOPTFL,ISEED,U,IFLAG) !originaly GSQ=GAUSS(ISEED,U,IFLAG)
            GG(ITT-IT1+1)=GSQ*SIMPL(ITT-IT1+1)
           ENDDO
-          IF ((GG(2).GT.0.0).OR.(GG(1).GT.0.0)) THEN
+          IF ((GG(2).GT.0.0).OR.(GG(1).GT.0.0)) THEN !TODO can I get a decent speed back when I introduce some IFs here?
             IF (GG(1).GT.0.0) THEN
               DMIX2 = GG(2) / GG(1)
             ELSE
@@ -727,18 +730,22 @@ REAL,dimension(1:2)::                 SIMPL,GG
        ENDDO
        IF (NOPTFL.GE.1) THEN !originaly .EQ.
         IF (MODE.EQ.0) THEN
+         GG(2)=0.0
          DO ITT=IT1,IT2
           G=GAUSS(ISEED,U,IFLAG)
           GG(ITT-IT1+1)=G*G*SIMPL(ITT-IT1+1)
          ENDDO
-         IF (GG(1).GT.0.0) THEN
-          DMIX2 = GG(2) / GG(1)
-         ELSE
-          DMIX2 = 0.0
+         IF ((GG(2).GT.0.0).OR.(GG(1).GT.0.0)) THEN !TODO can I get a decent speed back when I introduce some IFs here?
+           IF (GG(1).GT.0.0) THEN
+             DMIX2 = GG(2) / GG(1)
+           ELSE
+             DMIX2 = 0.0
+           ENDIF
+           alpha = ALPH_TOT(EG,spfi,ipfi,0.0,spin,ipin,DMIX2,nent,elent,convt)
+           Z = Z + (1. + alpha) * (GG(1)+GG(2))
          ENDIF
-         alpha = ALPH_TOT(EG,spfi,ipfi,0.0,spin,ipin,DMIX2,nent,elent,convt)
-         Z = Z + (1. + alpha) * (GG(1)+GG(2))
         ELSE !MODE.NE.0             ! Primary transitions (the same fluctuation)
+         GG(2)=0.0
          DO ITT=IT1,IT2
 !          G1=GAUSS(ISEED)
 !          G2=GAUSS(ISEED)+CORRI(MODE)*G1
@@ -747,25 +754,30 @@ REAL,dimension(1:2)::                 SIMPL,GG
           GSQ=CHISQR(NOPTFL,ISEED,U,IFLAG) !originaly GSQ=GAUSS(ISEED,U,IFLAG)
           GG(ITT-IT1+1)=GSQ*SIMPL(ITT-IT1+1)
          ENDDO
-         IF (GG(1).GT.0.0) THEN
-          DMIX2 = GG(2) / GG(1)
-         ELSE
-          DMIX2 = 0.0
+         IF ((GG(2).GT.0.0).OR.(GG(1).GT.0.0)) THEN !TODO can I get a decent speed back when I introduce some IFs here?
+           IF (GG(1).GT.0.0) THEN
+             DMIX2 = GG(2) / GG(1)
+           ELSE
+             DMIX2 = 0.0
+           ENDIF
+           alpha = ALPH_TOT(EG,spfi,ipfi,0.0,spin,ipin,DMIX2,nent,elent,convt)
+           Z = Z + (1. + alpha) * (GG(1)+GG(2))
          ENDIF
-         alpha = ALPH_TOT(EG,spfi,ipfi,0.0,spin,ipin,DMIX2,nent,elent,convt)
-         Z = Z + (1. + alpha) * (GG(1)+GG(2))
         ENDIF !end of MODE.EQ.0
        ELSE ! in IF (NOPTFL.GE.1) THEN
+        GG(2)=0.0
         DO ITT=IT1,IT2
          GG(ITT-IT1+1)=SIMPL(ITT-IT1+1)
         ENDDO
-        IF (GG(1).GT.0.0) THEN
-         DMIX2 = GG(2) / GG(1)
-        ELSE
-         DMIX2 = 0.0
+        IF ((GG(2).GT.0.0).OR.(GG(1).GT.0.0)) THEN !TODO can I get a decent speed back when I introduce some IFs here?
+          IF (GG(1).GT.0.0) THEN
+            DMIX2 = GG(2) / GG(1)
+          ELSE
+            DMIX2 = 0.0
+          ENDIF
+          alpha = ALPH_TOT(EG,spfi,ipfi,0.0,spin,ipin,DMIX2,nent,elent,convt)
+          Z = Z + (1. + alpha) * (GG(1)+GG(2))
         ENDIF
-        alpha = ALPH_TOT(EG,spfi,ipfi,0.0,spin,ipin,DMIX2,nent,elent,convt)
-        Z = Z + (1. + alpha) * (GG(1)+GG(2))
        ENDIF !end of IF (NOPTFL.GE.1) THEN
 !
 !       IF (IT.EQ.1) THEN
@@ -890,6 +902,7 @@ integer,dimension(:,:,:,:),allocatable::ISDIS
         SIMPL(ITT-IT1+1)=SGAMMA(EG,EIN,ITT)
       ENDDO
       DO IL=1,NL
+       GG(2)=0.0
        DO ITT=IT1,IT2
         IF (NOPTFL.GE.1) THEN !originaly .EQ.
          IF (MODE.EQ.0) THEN
@@ -907,7 +920,7 @@ integer,dimension(:,:,:,:),allocatable::ISDIS
           GG(ITT-IT1+1)=SIMPL(ITT-IT1+1)
         ENDIF
        ENDDO !ITT
-       IF ((GG(2).GT.0.0).OR.(GG(1).GT.0.0)) THEN
+       IF ((GG(2).GT.0.0).OR.(GG(1).GT.0.0)) THEN !TODO can I get a decent speed back when I introduce some IFs here?
          IF (GG(1).GT.0.0) THEN
            DMIX2 = GG(2) / GG(1)
          ELSE
