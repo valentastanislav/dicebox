@@ -47,6 +47,7 @@ real,dimension(:),allocatable::   RADWID,RADWDI
 real,dimension(:,:),allocatable:: POPULT,POPERT,POPULS,POPERS
 real,dimension(:),allocatable::   POPVAR,POPSVAR
 real,dimension(:,:),allocatable:: COVAP,COVAS
+real :: start, finish
 
 !$OMP PARALLEL DEFAULT(PRIVATE) &
 !$OMP SHARED(lopopgs,kpopgs,NVLAKEN,NDEAD,NISOM,KONTROLMATRIX,RADW,POPTLEV,POPSLEV,&
@@ -73,6 +74,7 @@ real,dimension(:,:),allocatable:: COVAP,COVAS
       ITID = OMP_GET_THREAD_NUM()
       IFLAG=0 !TODO ocesat od IFLAG
       U=0.
+      call cpu_time(start)
 !$OMP BARRIER
       IF (ITID.EQ.0) THEN
 !******initial reading**************************************************
@@ -207,7 +209,6 @@ real,dimension(:,:),allocatable:: COVAP,COVAS
           CALL WIDTHS_R(ILINc,IPINC,SPINC(ILINc),IBIN,ILIN,TOTCON,STCON,GACON,ISCON,TOTDIS,STDIS,GADIS,&
                         ISDIS,LEVCON,IRCON,IRCONc,IFLAG,U,IREGI,EIN,EFI)
         ENDDO
-        WRITE(*,*) ',', TOTCON(1)
         DO ILINc=1,NLINc
           RADW(NUC,ISUB)=RADW(NUC,ISUB)+sngl(TOTCON(ILINc))+TOTDIS(ILINc)
         ENDDO
@@ -328,6 +329,7 @@ real,dimension(:,:),allocatable:: COVAP,COVAS
       CALL WRITE_PARAMS
       CALL WRITE_DICE_PRO(RADWID(0),RADVAR,RADWDI(0),NDEAD,NISOM)
       CALL WRITE_DICE_POPS(POPULT,POPERT,POPVAR,COVAP,POPULS,POPERS,POPSVAR,COVAS)
-
+      call cpu_time(finish)
+      print '("Time = ",f6.3," seconds.")',finish-start
       END PROGRAM DICE_EVENT
       
