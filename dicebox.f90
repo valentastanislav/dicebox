@@ -330,6 +330,6 @@ real:: start, finish
       CALL WRITE_DICE_PRO(RADWID(0),RADVAR,RADWDI(0),NDEAD,NISOM)
       CALL WRITE_DICE_POPS(POPULT,POPERT,POPVAR,COVAP,POPULS,POPERS,POPSVAR,COVAS)
       call cpu_time(finish)
-      print '("Run Time = ",f6.3," seconds.")',finish-start
+      print '("Run Time = ",f10.3," seconds.")',finish-start
       END PROGRAM DICE_EVENT
       
