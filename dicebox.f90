@@ -160,6 +160,7 @@ real:: start, finish
        write(*,*) 'starting NREAL with these seeds: ',NUC,IR1,IR2,IR3,IR4 !TODO delete after testing of reproducibility
 !
        CALL LEVELSCH (IR1,NUC,IFLAG,NTOTAL,ITID,SPINC(1),U,LEVCON)
+       write(*,*) 'levels generated for NREAL #',NUC
        IF (ISWLS.EQ.1) THEN   ! Writing generated levels if requested
          CALL WRITELEVELS(NUC,NBIN,LEVCON)
        ENDIF ! ISWLS

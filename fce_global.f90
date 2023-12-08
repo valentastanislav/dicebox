@@ -664,7 +664,7 @@ REAL,dimension(1:2)::                 SIMPL,GG
            G=GAUSS(ISEED,U,IFLAG)
            GG(ITT-IT1+1)=G*G*SIMPL(ITT-IT1+1)
           ENDDO
-          IF ((GG(2).GT.0.0).OR.(GG(1).GT.0.0)) THEN !TODO can I get a decent speed back when I introduce some IFs here?
+          IF ((GG(2).GT.0.0).OR.(GG(1).GT.0.0)) THEN !NOTE can I get a decent speed back when I introduce some IFs here? => after some testing this seems obsolete
             IF (GG(1).GT.0.0) THEN
               DMIX2 = GG(2) / GG(1)
             ELSE
@@ -681,7 +681,7 @@ REAL,dimension(1:2)::                 SIMPL,GG
            GSQ=CHISQR(NOPTFL,ISEED,U,IFLAG) !originaly GSQ=GAUSS(ISEED,U,IFLAG)
            GG(ITT-IT1+1)=GSQ*SIMPL(ITT-IT1+1)
           ENDDO
-          IF ((GG(2).GT.0.0).OR.(GG(1).GT.0.0)) THEN !TODO can I get a decent speed back when I introduce some IFs here?
+          IF ((GG(2).GT.0.0).OR.(GG(1).GT.0.0)) THEN !NOTE can I get a decent speed back when I introduce some IFs here? => after some testing this seems obsolete
             IF (GG(1).GT.0.0) THEN
               DMIX2 = GG(2) / GG(1)
             ELSE
@@ -807,8 +807,8 @@ REAL,dimension(1:2)::                 SIMPL,GG
 !      WRITE(*,*) TOTDIS(MODE),STDIS(MODE,NDIS(ISUBSC(SPFI),IPFI),ISBS,IPFI),Z,SPAC
 !
     1     CONTINUE
-        ENDDO
-      ENDDO
+        ENDDO !ISPFI
+      ENDDO !IPFI
       RETURN
 END SUBROUTINE WIDTHS_R
 !***********************************************************************      

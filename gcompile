@@ -1,1 +1,1 @@
-gfortran -O3 -fbacktrace -fmax-errors=1 -fopenmp -o gisol_para.exe fce_local.f90 fce_common.f90 fce_global.f90 dicebox.f90 > gcompile.log
+gfortran -O3 -g -fbacktrace -fmax-errors=1 -fopenmp -o gisol_para.exe fce_local.f90 fce_common.f90 fce_global.f90 dicebox.f90 > gcompile.log
