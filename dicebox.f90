@@ -11,8 +11,8 @@ INTEGER,PARAMETER::    MAXJC  = 49
 CHARACTER(80)::                       NAME
 LOGICAL::        log_check,sidlev
 INTEGER::        IC_type !0 = gamma, 1 = K-shell, 2 = higher-shell, 3 = pair
-INTEGER::        IR0,IR1,IR2,IR3,IR4,ITID,IFLAG,NTOTAL,IREGI,IBIN,ILIN
-INTEGER::        ilinc,ip,is,il,i,K,IEV,STEPS,IPFI,IBFI,ILFI,IPIN,ISUB
+INTEGER::        IR1,IR2,IR3,IR4,ITID,IFLAG,NTOTAL,IREGI,IBIN,ILIN
+INTEGER::        ilinc,ip,is,il,i,IEV,STEPS,IPFI,IBFI,ILFI,IPIN,ISUB
 REAL::           U,dummy,SPFI,DMIX2,SIGN,SPIN, eg,EG_MAX,EG_STEP
 real,dimension(:,:),allocatable::     sall
 integer,dimension(:,:,:),allocatable::LEVCON
@@ -124,7 +124,6 @@ real:: start, finish
         endif 
         CALL CNTRLMTRX(KONTROLMATRIX,4,NREAL)  !should be OK
         CALL INICIALIZACE(NDEAD,NISOM,RADW,RADWID,RADWDI,POPTLEV,POPSLEV)
-!        IR0=KONTROLMATRIX(1,NREAL)
         IF (LMODE.EQ.1) THEN
           CALL GENERATE_GOE_EIGEN_VAL(IR1,700,IFLAG,U) !Maximum allowed dimension (2nd parameter) is 1000
         ENDIF
