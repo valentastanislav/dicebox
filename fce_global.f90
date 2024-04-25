@@ -232,6 +232,10 @@ REAL::                  enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,FSPAC,corrA
            WRITE(*,*) 'parity can be either 0 (+) or 1 (-)'
            STOP
          ENDIF
+         IF(sal(i,k).LE.0.0) THEN
+          WRITE(*,*) 'branching/intensity of deexcitation can not be 0 or less'
+          STOP
+        ENDIF
          control=0
          DO j=1,ndis(ISUBSC(desp),ipar)
            IF(elowlev(dekod(j,ISUBSC(desp),ipar)).NE.enrgf) control=control+1
