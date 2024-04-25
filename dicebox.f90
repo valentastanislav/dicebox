@@ -162,8 +162,10 @@ real:: start, finish
        write(*,*) 'levels generated for NREAL #',NUC
        IF (ISWLS.EQ.1) THEN   ! Writing generated levels if requested
          CALL WRITELEVELS(NUC,NBIN,LEVCON)
+         write(*,*) 'levels written for NREAL #',NUC
        ENDIF ! ISWLS
        CALL GERMS(IR2,NTOTAL,NDDD,IRCONc,IRCON)
+       write(*,*) 'widths generated for NREAL #',NUC
 !      Intensities of low-lying transitions can fluctuate
        CALL READ_INT(sall,IFLAG,U,IR2)
        write(*,*) 'processing NREAL with these seeds: ',NUC,IR1,IR2,IR3,IR4 !TODO delete after testing of reproducibility
