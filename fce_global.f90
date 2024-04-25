@@ -36,7 +36,8 @@ character(80)::         NAME
 logical::               lopopgs
 integer,dimension(:,:),allocatable:: KONTROLMATRIX
 INTEGER::               I,J,K,NMU,ipfi,ipar,control
-REAL::                  enrg,spfi,enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,FSPAC,corrAlpha,corrDelta
+REAL::                  enrg,spfi,prim,errprim
+REAL::                  enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,FSPAC,corrAlpha,corrDelta
       OPEN (UNIT=5,FILE=NAME,STATUS='OLD')
 !     User's alphanumeric titles:
       READ (5,100) TITLE1
@@ -213,7 +214,7 @@ REAL::                  enrg,spfi,enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,F
         allocate (isbspin(1:numlev,1:2))
       endif  
       DO i=1,numlev
-       READ (5,*) enrg,spfi,ipfi,denum(i),dummy,dummy,LVL_CLASS(i)
+       READ (5,*) enrg,spfi,ipfi,denum(i),prim,errprim,LVL_CLASS(i)
        write(*,*) 'reading lvl # ',i,' at energy ',enrg
        IF((ipfi.NE.0).AND.(ipfi.NE.1)) THEN
          WRITE(*,*) 'parity can be either 0 (+) or 1 (-)'
