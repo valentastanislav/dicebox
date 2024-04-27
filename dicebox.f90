@@ -23,7 +23,7 @@ double precision,dimension(0:2,-2:2,0:1)::     GACON
 double precision,dimension(:,:,:,:),allocatable::  STCON
 double precision,dimension(0:2)::     TOTCON
 integer,dimension(:,:,:,:),allocatable:: ISCON
-real, dimension(0:2,0:20,-2:2,0:1)::  STDIS
+real, dimension(0:2,0:20,-2:2,0:1)::  STDIS,STDISa
 real, dimension(0:2,-2:2,0:1)::       GADIS
 real, dimension(0:2)::                TOTDIS
 
@@ -52,7 +52,7 @@ real:: start, finish
 !$OMP PARALLEL DEFAULT(PRIVATE) &
 !$OMP SHARED(lopopgs,kpopgs,NVLAKEN,NDEAD,NISOM,KONTROLMATRIX,RADW,POPTLEV,POPSLEV,&
 !$OMP ISWWR,ISWBN,ISWEL,ISWSP,ISWPA,ISWIC,ISWMX,ISWWI,ISWLS,&
-!$OMP NOPTFL,NOPTE1,NOPTM1,NOPTE2,NOPTDE,LMODE,LDENP,LDSTAG,&
+!$OMP IPRIM,NOPTFL,NOPTE1,NOPTM1,NOPTE2,NOPTDE,LMODE,LDENP,LDSTAG,&
 !$OMP NREAL, NEVENTS, NUMLEV, NSUB,&
 !$OMP NGIGE,NLOWLOR,ER,W0,SIG,NGIGM,ERM,WM0,SIGM,NGIGE2,ERE,WE0,SIGE,&
 !$OMP DEG,DMG,QEL,FERMC,TCONST,PAIR_PSF,EK0,EGZERO,&
@@ -63,7 +63,7 @@ real:: start, finish
 !$OMP DENLO,DENHI,DENPA,DENPB,DENPC,DENPD,&
 !$OMP BN,SPINc,IPINC,NOPTCS,NLINC,CAPFR,&
 !$OMP XRAYK,XRAYL,NENT,ELENT,CONVT,NENK,ELENK,CONVK,&
-!$OMP ECRIT,EALL,max_decays,max_spin,&
+!$OMP ECRIT,EALL,factnrm,max_decays,max_spin,prim,errprim,&
 !$OMP ndis,endis,dekod,denum,LVL_CLASS,LVL_ENERGY,delev,despin,deparity,deltx,&
 !$OMP sal,errsal,alpha,p_conv,p_conv_K,p_conv_IPF,elowlev,elowsp,ilowip,isbspin,ityp,nddd,&
 !$OMP TABENLD,TABLD,NLD,&
@@ -156,7 +156,7 @@ real:: start, finish
        IR2=KONTROLMATRIX(2,NUC) !radiation widths in form of precursors and low-lying intensity fluctuations
        IR3=KONTROLMATRIX(3,NUC) !MC of cascades - actual search for the final state
        IR4=KONTROLMATRIX(4,NUC) !MC of cascades - the seed for a) mixing of primaries b) "coin flip" of internal conversion
-       write(*,*) 'starting NREAL with these seeds: ',NUC,IR1,IR2,IR3,IR4 !TODO delete after testing of reproducibility
+      !  write(*,*) 'starting NREAL with these seeds: ',NUC,IR1,IR2,IR3,IR4 !TODO delete after testing of reproducibility
 !
        CALL LEVELSCH (IR1,NUC,IFLAG,NTOTAL,ITID,SPINC(1),U,LEVCON)
        write(*,*) 'levels generated for NREAL #',NUC
@@ -165,10 +165,13 @@ real:: start, finish
          write(*,*) 'levels written for NREAL #',NUC
        ENDIF ! ISWLS
        CALL GERMS(IR2,NTOTAL,NDDD,IRCONc,IRCON)
-       write(*,*) 'widths generated for NREAL #',NUC
+       write(*,*) 'precursors assigned for levels in NREAL #',NUC
 !      Intensities of low-lying transitions can fluctuate
-       CALL READ_INT(sall,IFLAG,U,IR2)
-       write(*,*) 'processing NREAL with these seeds: ',NUC,IR1,IR2,IR3,IR4 !TODO delete after testing of reproducibility
+       CALL READ_INT(sall,STDISa,IFLAG,U,IR2)
+      !  write(*,*) 'after READ_INT ',sum(prim)*factnrm,(maxval(STDISa(1,:,-2,0))+maxval(STDISa(1,:,-1,0)) &
+      !  +maxval(STDISa(1,:,0,0))+maxval(STDISa(1,:,1,0))+maxval(STDISa(1,:,2,0))+maxval(STDISa(1,:,-2,1)) &
+      !  +maxval(STDISa(1,:,-1,1))+maxval(STDISa(1,:,0,1))+maxval(STDISa(1,:,1,1))+maxval(STDISa(1,:,2,1)))
+      !  write(*,*) 'processing NREAL with these seeds: ',NUC,IR1,IR2,IR3,IR4 !TODO delete after testing of reproducibility
        DO ISUB=1,NSUB !TODO alokace a pocitani pozorovatelnych
 !
 !      The following DO loop serves for computing of mixing ratios
@@ -181,6 +184,11 @@ real:: start, finish
         endif 
         DO ilinc=1,nlinc
          DO ip=0,1
+          DO is=-2,2
+            DO i=1,20
+              STDIS(ilinc,i,is,ip)=0.0
+            ENDDO
+          ENDDO
           DO is=0,8
            DO il=1,NDIS(is,ip)
             DO i=1,100
@@ -207,16 +215,59 @@ real:: start, finish
         IF (RADW(NUC,ISUB).NE.0.0) write(*,*) 'problem with routine inicializace' !TODO delete if working properly
 !
         write(*,*) 'before WIDTHS_R for: ',ISUB,' of ',NUC
-        DO ILINc=1,NLINc
-          CALL WIDTHS_R(ILINc,IPINC,SPINC(ILINc),IBIN,ILIN,TOTCON,STCON,GACON,ISCON,TOTDIS,STDIS,GADIS,&
+        IF (IPRIM.EQ.1) THEN ! Known primaries
+          DO ILINc=1,NLINc
+            CALL WIDTHS_R(ILINc,IPINC,SPINC(ILINc),IBIN,ILIN,TOTCON,STCON,GACON,ISCON,TOTDIS,STDISa,GADIS,&
                         ISDIS,LEVCON,IRCON,IRCONc,IFLAG,U,IREGI,EIN,EFI)
-        ENDDO
-        DO ILINc=1,NLINc
-          RADW(NUC,ISUB)=RADW(NUC,ISUB)+sngl(TOTCON(ILINc))+TOTDIS(ILINc)
-        ENDDO
-        IREGI=0
-        IBIN=0
-        ILIN=1
+            ! write(*,*) 'TOTDIS = ',TOTDIS(1),' and STDISa = ',(maxval(STDISa(1,:,-2,0))+maxval(STDISa(1,:,-1,0)) &
+            !  +maxval(STDISa(1,:,0,0))+maxval(STDISa(1,:,1,0))+maxval(STDISa(1,:,2,0))+maxval(STDISa(1,:,-2,1)) &
+            !  +maxval(STDISa(1,:,-1,1))+maxval(STDISa(1,:,0,1))+maxval(STDISa(1,:,1,1))+maxval(STDISa(1,:,2,1)))
+          ENDDO
+          IF (TOTDIS(1).GE.1.) write(*,*) 'total relative rad. width bigger than 1' !TODO make some security GOTO
+          ! write(*,*) 'HERE ',TOTDIS(1),TOTCON(1), sngl(TOTCON(1))/(1.-TOTDIS(1))
+          DO ILINc=1,NLINc
+            dummy=sngl(TOTCON(ILINc))/(1-TOTDIS(ILINc))
+            ! write(*,*) 'after HERE',dummy
+            DO IPFI=0,1
+              SPIN=SPINC(ILINc)-INT(SPINC(ILINc)+.25)
+              DO IS = 0, MAXJC
+               SPFI = FLOAT(IS) + SPIN
+               ipin=NINT(SPFI+.25)-NINT(SPINC(ILINc)+.25)
+               IF ((ipin.GE.-2).AND.(ipin.LE.2)) THEN
+                DO il=1,NDIS(ISUBSC(SPFI),IPFI)
+                 STDIS(ILINc,il,ipin,IPFI)=STDISa(ILINc,il,ipin,IPFI)*dummy
+                ENDDO
+               ENDIF
+              ENDDO ! IS / SPFI
+            ENDDO ! IPFI
+            RADW(NUC,ISUB)=RADW(NUC,ISUB)+dummy*CAPFR(ILINc)
+          ENDDO ! ILINc
+          IREGI=0
+          IBIN=0
+          ILIN=1
+          ! write(*,*) 'TOTDIS = ',TOTDIS(1),' and STDIS = ',(maxval(STDIS(1,:,-2,0))+maxval(STDIS(1,:,-1,0)) &
+          ! +maxval(STDIS(1,:,0,0))+maxval(STDIS(1,:,1,0))+maxval(STDIS(1,:,2,0))+maxval(STDIS(1,:,-2,1)) &
+          ! +maxval(STDIS(1,:,-1,1))+maxval(STDIS(1,:,0,1))+maxval(STDIS(1,:,1,1))+maxval(STDIS(1,:,2,1)))
+          DO ILINc=1,NLINc
+            CALL WIDTHS_R(ILINc,IPINC,SPINC(ILINc),IBIN,ILIN,TOTCON,STCON,GACON,ISCON,TOTDIS,STDIS,GADIS,&
+                        ISDIS,LEVCON,IRCON,IRCONc,IFLAG,U,IREGI,EIN,EFI)
+            ! write(*,*) 'TOTDIS = ',TOTDIS(1),' and STDIS = ',(maxval(STDIS(1,:,-2,0))+maxval(STDIS(1,:,-1,0)) &
+            ! +maxval(STDIS(1,:,0,0))+maxval(STDIS(1,:,1,0))+maxval(STDIS(1,:,2,0))+maxval(STDIS(1,:,-2,1)) &
+            ! +maxval(STDIS(1,:,-1,1))+maxval(STDIS(1,:,0,1))+maxval(STDIS(1,:,1,1))+maxval(STDIS(1,:,2,1)))
+          ENDDO
+        ELSE  !Unknown primary intensities
+          DO ILINc=1,NLINc
+            CALL WIDTHS_R(ILINc,IPINC,SPINC(ILINc),IBIN,ILIN,TOTCON,STCON,GACON,ISCON,TOTDIS,STDIS,GADIS,&
+                        ISDIS,LEVCON,IRCON,IRCONc,IFLAG,U,IREGI,EIN,EFI)
+            ! write(*,*) 'TOTDIS = ',TOTDIS(1),' and STDIS = ',SUM(STDIS)
+          ENDDO
+          DO ILINc=1,NLINc
+            RADW(NUC,ISUB)=RADW(NUC,ISUB)+sngl(TOTCON(ILINc))+TOTDIS(ILINc)
+          ENDDO
+          IREGI=0
+          IBIN=0
+          ILIN=1
+        ENDIF ! IF (SUM(prim).GT.0.0) THEN
         write(*,*) 'cascading starting for: ',ISUB,' of ',NUC
 !
 !       The master DO-loop
@@ -288,7 +339,7 @@ real:: start, finish
           WIQQ(IEV,steps)=0.0
           DMQQ(IEV,steps)=sign*sqrt(dmix2)
 !   **** feeding of ground state ****
-          if (lopopgs) then
+          if (lopopgs.AND.(EFI.EQ.0.0)) then
             poptlev(kpopgs,NUC,ISUB)=poptlev(kpopgs,NUC,ISUB)+1.
             if (.NOT.sidlev) then
               popslev(kpopgs,NUC,ISUB)=popslev(kpopgs,NUC,ISUB)+1.
@@ -297,6 +348,7 @@ real:: start, finish
           ICQQ(IEV,steps)=IC_type
           IC_type=0
           NR_STEPS(IEV)=STEPS
+
    5      CONTINUE
         ENDDO
 !       writin the cascades

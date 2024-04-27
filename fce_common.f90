@@ -9,23 +9,24 @@ use lokalni_fce
 integer::                             nbin,LMODE,LDENP,LDSTAG,NLD,NGIGE,NLOWLOR,NGIGM,NGIGE2,NOPTE1,NOPTM1,NOPTE2
 integer::                             max_decays,numlev,NOPTDE
 
-real::                                BN,AMASS,DELTA,PAIRING,FJ
+real::                                factnrm,BN,AMASS,DELTA,PAIRING,FJ
 real::                                ASHELL09,DEL09,TEMPER09,EZERO09,PAIRING09,SIG_CUSTOM,EZERO,TEMPER,DEL,ASHELL
 real::                                DENLO,DENHI,DENPA,DENPB,DENPC,DENPD,ZNUM,DENPPC,DENPA0,DENPA1,DENPA2
 real::                                FERMC,TCONST,PAIR_PSF,DEG,DMG,QEL,EK0
 real::                                EGZERO,DIPSLP,DIPZER,EFEC_E
-real,    dimension(1:4)::             PAR_E1,PAR_M1
-integer, dimension(1:199)::            denum,LVL_CLASS
+integer, dimension(1:199)::           denum,ilowip,LVL_CLASS !TODO maybe make these allocatable
 integer, dimension(0:49,0:1)::        NDIS,NEIGENVAL
-integer, dimension(1:199,1:20)::       delev,deparity
+integer, dimension(1:199,1:20)::      delev,deparity
 integer,dimension(:,:),allocatable::  ityp
 
+real,    dimension(1:2)::             spinc
+real,    dimension(1:4)::             PAR_E1,PAR_M1
 real,    dimension(1:5)::             ER,SIG,W0,ERM,SIGM,WM0,ERE,SIGE,WE0
-real,    dimension(1:199)::            LVL_ENERGY
+real,    dimension(1:199)::           LVL_ENERGY,prim,errprim,elowlev,elowsp !TODO maybe make these allocatable
 real,    dimension(0:270)::           TABENLD
-real,    dimension(1:199,0:20)::       sal,errsal,alpha !TODO somehow smart determine the maximum number of decays in DIS and make these allocatable
+real,    dimension(1:199,0:20)::      sal,errsal,alpha !TODO somehow smart determine the maximum number of decays in DIS and make these allocatable
 real,    dimension(0:24,0:20)::       F4
-real,    dimension(1:199,1:20)::       despin
+real,    dimension(1:199,1:20)::      despin
 real,    dimension(1:20,0:49,0:1)::   ENDIS
 real,    dimension(0:270,0:49,0:1)::  TABLD
 integer, dimension(1:3)::             NPSF
@@ -66,14 +67,15 @@ REAL::                                SP,E
     RETURN
 END SUBROUTINE ADJUST_NBIN
 !***********************************************************************
-SUBROUTINE READ_INT(sall,IFLAG,U,IR4)   !should be OK
+SUBROUTINE READ_INT(sall,STDISa,IFLAG,U,IR4)   !should be OK
 !***********************************************************************
 integer::                             IFLAG,IR4
 real::                                U
 real,dimension(:,:),allocatable::     sall
-INTEGER::                             I,J,K
+real, dimension(0:2,0:20,-2:2,0:1)::  STDISa
+INTEGER::                             I,J,K, spin_diff
 REAL::                                sal_tp
-!global despin,deparity,delev,denum,alpha,ndis,endis,max_decays,sal,errsal
+!global despin,deparity,delev,denum,prim,errprim,alpha,ndis,endis,max_decays,sal,errsal
       if(.not.allocated(sall)) then
         allocate(sall(1:numlev,0:max_decays))
       endif
@@ -82,9 +84,19 @@ REAL::                                sal_tp
           sall(I,K)=0.
         ENDDO
       ENDDO
+      DO I=0,2
+        DO J=0,20
+          DO spin_diff=-2,2
+            DO K=0,1
+              STDISa(I,J,spin_diff,K)=0.0
+            ENDDO
+          ENDDO
+        ENDDO
+      ENDDO
       sal_tp=0.
       IFLAG=0
       DO I=1,numlev
+!   SECONDARIES part
         DO K=1,denum(I)
 !         write(*,*) I,K
          DO J=1,ndis(ISUBSC(despin(I,K)),deparity(I,K))
@@ -95,7 +107,19 @@ REAL::                                sal_tp
            ENDIF
          ENDDO
         ENDDO
-      ENDDO
+!   PRIMARIES part; TODO introduce fluctuations according to errprim(I)
+        DO J=1,ndis(ISUBSC(elowsp(I)),ilowip(I)) ! we go over all levels of the same spin and parity to find THE level
+          spin_diff = NINT(elowsp(I)+.25)-NINT(SPINc(1)+.25)
+          IF ((LVL_ENERGY(I).EQ.endis(J,ISUBSC(elowsp(I)),ilowip(I))).AND.(abs(spin_diff).LE.2)) THEN
+            ! write(*,*) 'in READ_INT ',I,J,spin_diff,ilowip(I),prim(I)
+            STDISa(1,J,spin_diff,ilowip(I)) = &
+            STDISa(1,J-1,spin_diff,ilowip(I)) + prim(I)*factnrm
+          ENDIF
+        ENDDO
+      ENDDO ! I=1,numlev
+      ! write(*,*) 'in READ_INT ',sum(prim)*factnrm,(maxval(STDISa(1,:,-2,0))+maxval(STDISa(1,:,-1,0)) &
+      ! +maxval(STDISa(1,:,0,0))+maxval(STDISa(1,:,1,0))+maxval(STDISa(1,:,2,0))+maxval(STDISa(1,:,-2,1)) &
+      ! +maxval(STDISa(1,:,-1,1))+maxval(STDISa(1,:,0,1))+maxval(STDISa(1,:,1,1))+maxval(STDISa(1,:,2,1)))
       RETURN
 END SUBROUTINE READ_INT
 !***********************************************************************
@@ -401,7 +425,7 @@ integer::                             IPAR
 !
       IF (LDENP.EQ.0) THEN
         PARDEP=0.5
-      ELSEIF (LDENP.EQ.2) THEN
+      ELSEIF (LDENP.GE.2) THEN
         PAIRS=DENPA0+DENPA1/AMASS**DENPA2             !see PRC67, 015803  
       ELSEIF (LDENP.EQ.1) THEN                        !see PRC67, 015803
         IF (MOD(INT(AMASS+0.25),2).EQ.0) THEN
@@ -418,14 +442,19 @@ integer::                             IPAR
           ENDIF
         ENDIF
       ENDIF
-      IF (LDENP.GT.0) THEN
+      IF ((LDENP.EQ.1).OR.(LDENP.EQ.2)) THEN
         IF (IPAR.EQ.0) THEN 
           PARDEP=0.5*(1+1/(1+EXP(DENPPC*(EEXC-PAIRS))))
         ELSE
           PARDEP=0.5*(1-1/(1+EXP(DENPPC*(EEXC-PAIRS))))
         ENDIF
+      ELSEIF (LDENP.EQ.3) THEN
+        IF (IPAR.EQ.0) THEN 
+          PARDEP=0.5*(1-1/(1+EXP(DENPPC*(EEXC-PAIRS))))
+        ELSE
+          PARDEP=0.5*(1+1/(1+EXP(DENPPC*(EEXC-PAIRS))))
+        ENDIF
       ENDIF           
-!      IF (IPAR.EQ.1) PARDEP=1.0-PARDEP  !IPDEN zahozeno TODO
 !
       DENSITY=DENSITY*FJ*PARDEP
       RETURN

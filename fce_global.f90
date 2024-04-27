@@ -6,22 +6,20 @@ use lokalni_fce
 use spolecne
 implicit none
 
-integer::                             NEVENTS,NREAL,NSUB,NDDD,NOPTFL,NLINc,ipinc,nfilev,NSTEPS,NENT,NENK,NEN_IPF,&
+integer::                             NEVENTS,NREAL,NSUB,NDDD,IPRIM,NOPTFL,NLINc,ipinc,nfilev,NSTEPS,NENT,NENK,NEN_IPF,&
                                       KpopGS,ISWWR,ISWBN,ISWEL,ISWSP,ISWPA,ISWIC,ISWMX,ISWWI,ISWLS,NOPTCS,&
                                       N_MSC_FS,MIN_MULTIPLICITA,MAX_MULTIPLICITA,TRGT_PI
 
-real::                                eall,EIN,EFI,ecrit,xrayk,xrayl,max_spin,factnrm,SUMNO,BIN_WIDTH,&
+real::                                eall,EIN,EFI,ecrit,xrayk,xrayl,max_spin,SUMNO,BIN_WIDTH,&
                                       D0,TRGT_SPIN
 
-integer, dimension(1:199)::            ilowip
 integer, dimension(0:49,0:1)::        levdis
 integer, dimension(1:20,0:49,0:1)::   dekod
 integer,dimension(:,:),allocatable::  isbspin
 
 real,    dimension(:),allocatable::   MSC_FS
-real,    dimension(1:2)::             CAPFR,spinc
+real,    dimension(1:2)::             CAPFR
 real,    dimension(1:100)::           elent,elenk,ELEN_IPF
-real,    dimension(1:199)::            elowlev,elowsp
 real,    dimension(1:199,0:20)::       p_conv,p_conv_K,p_conv_IPF !TODO somehow smart determine the maximum number of decays in DIS and make these allocatable
 real,    dimension(1:199,1:20)::       deltx
 real,    dimension(0:1,1:5,1:100)::    CONVt,CONVk,CONV_IPF
@@ -36,7 +34,7 @@ character(80)::         NAME
 logical::               lopopgs
 integer,dimension(:,:),allocatable:: KONTROLMATRIX
 INTEGER::               I,J,K,NMU,ipfi,ipar,control
-REAL::                  enrg,spfi,prim,errprim
+REAL::                  enrg,spfi
 REAL::                  enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,FSPAC,corrAlpha,corrDelta
       OPEN (UNIT=5,FILE=NAME,STATUS='OLD')
 !     User's alphanumeric titles:
@@ -55,7 +53,7 @@ REAL::                  enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,FSPAC,corrA
       READ (5,*)
       READ (5,*) NBIN,(KONTROLMATRIX(I,1),I=1,4)
       READ (5,*)
-      READ (5,*) NOPTFL,NOPTE1,NOPTM1,NOPTE2,NOPTDE,LMODE,LDENP,LDSTAG
+      READ (5,*) IPRIM,NOPTFL,NOPTE1,NOPTM1,NOPTE2,NOPTDE,LMODE,LDENP,LDSTAG
       READ (5,*)
       READ (5,*) N_MSC_FS, BIN_WIDTH
       if (N_MSC_FS.GE.1) then
@@ -206,16 +204,21 @@ REAL::                  enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,FSPAC,corrA
       ENDDO
       max_decays=0
       max_spin=0.
+      READ (5,*) factnrm
+      READ (5,*) 
       READ (5,*) numlev !TODO zde bude druha promenna udavajici pocet hladin mezi EALL a ECRIT
       if (.not.allocated(ityp)) then
         allocate (ityp(1:numlev,1:2))
       endif  
       if (.not.allocated(isbspin)) then
         allocate (isbspin(1:numlev,1:2))
-      endif  
+      endif
+      DO i=1,199
+        prim(i)=0.0
+      ENDDO
       DO i=1,numlev
-       READ (5,*) enrg,spfi,ipfi,denum(i),prim,errprim,LVL_CLASS(i)
-       write(*,*) 'reading lvl # ',i,' at energy ',enrg
+       READ (5,*) enrg,spfi,ipfi,denum(i),prim(i),errprim(i),LVL_CLASS(i)
+       write(*,*) 'reading lvl # ',i,' at energy ',enrg, ' with Iprim =',prim(i)
        IF((ipfi.NE.0).AND.(ipfi.NE.1)) THEN
          WRITE(*,*) 'parity can be either 0 (+) or 1 (-)'
          STOP
@@ -287,7 +290,7 @@ REAL::                  enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,FSPAC,corrA
       ENDDO
 !
       CLOSE (UNIT=5,STATUS='KEEP')
-      WRITE(*,*) 'nddd ',nddd,' numlev ',numlev
+      WRITE(*,*) 'nddd ',nddd,' numlev ',numlev,' sum(Iprim)=',SUM(prim)
 
       IF ((NOPTDE.EQ.8).OR.(NOPTDE.EQ.9)) THEN
         IF (MOD(INT(AMASS+0.25),2).EQ.0) THEN
@@ -607,11 +610,11 @@ REAL,dimension(1:2)::                 SIMPL,GG
         DO I=0,NBIN
          STCON(MODE,I,IS,IP)=0.D+0
         ENDDO
-!        IF (MODE.EQ.0) THEN !what the hell
-        DO I=0,20
-         STDIS(MODE,I,IS,IP)=0.
-        ENDDO
-!        ENDIF
+        IF (MODE.EQ.0) THEN !if primaries are unknown, reset STDIS, if known, don't touch STDIS
+         DO I=0,20
+          STDIS(MODE,I,IS,IP)=0.
+         ENDDO
+        ENDIF
         GACON(MODE,IS,IP)=0.D+0
         GADIS(MODE,IS,IP)=0.
        ENDDO !IP
@@ -717,13 +720,13 @@ REAL,dimension(1:2)::                 SIMPL,GG
 !       ENDIF
       ENDDO !I=IBIN+1,NBIN
 !
-!     For primary transitions it is assumed that MODE=0. In such
+!     For primary transitions it is assumed that MODE=0. In such !TODO ask Milan, this should be MODE<>0, no?
 !     a case it is understood that the values of the ACTUAL
 !     subscripted variable that replaces the FICTIVE variable STDIS
 !     are simply derived from input data without the need of Monte
 !     Carlo simulation.
 !
-!      IF (MODE.NE.0) GOTO 22    !!!!!!!! Compare to WIDTHS()
+      IF ((IPRIM.EQ.1).AND.(MODE.NE.0)) GOTO 22    !!!!!!!! Compare to WIDTHS()
    24 CONTINUE
       DO I=1,NDIS(ISUBSC(SPFI),IPFI)
        EG=EIN-ENDIS(I,ISUBSC(SPFI),IPFI)
