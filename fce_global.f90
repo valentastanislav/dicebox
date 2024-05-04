@@ -847,10 +847,10 @@ integer,dimension(:,:,:,:),allocatable::ISDIS
       IF (SPAC.LE.0.0) SPAC=0.00001
 !
     5 DRN=(DBLE(INT(DBLE(RAN0(IR))/1.D-4))+DBLE(RAN0(IR)))*1.D-4*(TOTCON(MODE)+DBLE(TOTDIS(MODE)))
-      IF (DRN-TOTCON(MODE)) 1,2,2
+      IF (DRN-TOTCON(MODE)) 1,2,2 !determine if transition ends in continuum or on discrete level
 !
 !     Label #1 means that the transition ends in the continuum; this
-!     can be learnt from IREGI=0.
+!     can be later learnt from IREGI=0.
 !
     1 IREGI=0
       SP  = SPIN - INT(SPIN + .25)
@@ -991,6 +991,9 @@ integer,dimension(:,:,:,:),allocatable::ISDIS
       ENDIF
       RETURN
 !
+!     Label #2 means that the transition ends on a discrete level; this
+!     can be later learnt from IREGI=1.
+!
     2 IREGI=1
       RN=SNGL(DRN-TOTCON(MODE))
       SP  = SPIN - INT(SPIN + .25)
@@ -1024,11 +1027,11 @@ integer,dimension(:,:,:,:),allocatable::ISDIS
       ISEED=ISDIS(MODE,ILFI,ISUBSC(SPFI),IPFI)
       IFLAG=0
       IF (IT.EQ.2) THEN
-         IT1=3
-         IT2=4
-         ELSE
-         IT1=IT
-         IT2=IT
+        IT1=3
+        IT2=4
+      ELSE
+        IT1=IT
+        IT2=IT
       ENDIF
       EG=EIN-EFI
       DO ITT=IT1,IT2
@@ -1040,7 +1043,12 @@ integer,dimension(:,:,:,:),allocatable::ISDIS
          G=GAUSS(ISEED,U,IFLAG)
          GG(ITT-IT1+1)=G
         ENDDO
-       ELSE                             !Primary transitions
+       ELSEIF (MODE.EQ.1) THEN  !Primary transitions from a state with ONE given spin and parity
+        DO ITT=IT1,IT2
+         G=GAUSS(ISEED,U,IFLAG)
+         GG(ITT-IT1+1)=G
+        ENDDO
+       ELSE
         DO ITT=IT1,IT2
 !         G1=GAUSS(ISEED)
 !         G2=GAUSS(ISEED)+CORRI(MODE)*G1
@@ -1051,8 +1059,8 @@ integer,dimension(:,:,:,:),allocatable::ISDIS
          G=CHISQR(NOPTFL,ISEED,U,IFLAG) !originaly G=GAUSS(ISEED,U,IFLAG)
          GG(ITT-IT1+1)=SQRT(G)
         ENDDO
-       ENDIF
-      ENDIF
+       ENDIF ! MODE
+      ENDIF !NOPTFL
       IF (NOPTFL.LT.1) THEN !originaly .NE.
         GG(1)=1.
         GG(2)=1.

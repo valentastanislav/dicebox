@@ -295,7 +295,7 @@ real:: start, finish
             ELQQ(IEV,steps)=EFI
             SPQQ(IEV,steps)=SPFI
             IPQQ(IEV,steps)=IPFI
-            DMQQ(IEV,steps)=sign*sqrt(dmix2)
+            DMQQ(IEV,steps)=sign*sqrt(DMIX2)
             IF (IREGI.GT.0) THEN
               do I=1,numlev
                 if (efi.eq.elowlev(I)) then
@@ -331,13 +331,13 @@ real:: start, finish
             WIQQ(IEV,steps)=SNGL(TOTCON(0))+TOTDIS(0)
             STEPS=STEPS+1
             CALL ONESTEP(0,IPIN,SPIN,IBIN,ILIN,TOTCON,STCON,GACON,ISCON,TOTDIS,STDIS,GADIS,ISDIS,IPFI,SPFI,&
-                IBFI,ILFI,dmix2,sign,IR3,IR4,LEVCON,sall,U,IFLAG,EIN,EFI,IREGI,IC_type,IRCON,IRCONc)
+                IBFI,ILFI,DMIX2,sign,IR3,IR4,LEVCON,sall,U,IFLAG,EIN,EFI,IREGI,IC_type,IRCON,IRCONc)
           ENDDO  !WHILE EFI
    6      ELQQ(IEV,steps)=EFI
           SPQQ(IEV,steps)=SPFI
           IPQQ(IEV,steps)=IPFI
           WIQQ(IEV,steps)=0.0
-          DMQQ(IEV,steps)=sign*sqrt(dmix2)
+          DMQQ(IEV,steps)=sign*sqrt(DMIX2)
 !   **** feeding of ground state ****
           if (lopopgs.AND.(EFI.EQ.0.0)) then
             poptlev(kpopgs,NUC,ISUB)=poptlev(kpopgs,NUC,ISUB)+1.
