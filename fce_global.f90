@@ -207,6 +207,7 @@ REAL::                  enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,FSPAC,corrA
       READ (5,*) factnrm
       READ (5,*) 
       READ (5,*) numlev !TODO zde bude druha promenna udavajici pocet hladin mezi EALL a ECRIT
+      write(*,*) 'going to read ', numlev,' low-lying levels'
       if (.not.allocated(ityp)) then
         allocate (ityp(1:numlev,1:2))
       endif  
