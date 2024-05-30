@@ -69,7 +69,7 @@ REAL::                  enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,FSPAC,corrA
 !
       NLOWLOR=0
       READ (5,*)
-      IF((NOPTE1.EQ.66).OR.(NOPTE1.EQ.77)) THEN
+      IF((NOPTE1.EQ.66).OR.(NOPTE1.EQ.77).OR.(NOPTE1.EQ.58)) THEN
         READ (5,*) NGIGE, NLOWLOR
         DO I=1, NGIGE+NLOWLOR
           READ (5,*) ER(I),W0(I),SIG(I)

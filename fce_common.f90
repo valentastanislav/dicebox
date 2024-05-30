@@ -860,6 +860,21 @@ real::            EGAM,EINI
           ENDDO
           SGAMMA=PIH*Q*EGAM**3
           RETURN
+        ELSEIF (NOPTE1.EQ.58) THEN  ! GLO with constant temperature and pygmy resonance(s)
+          TFIN=TCONST
+          Q=0.
+          DO I=1,NLOWLOR
+            QQ=SIG(I)*(EGAM*W0(I)**2/((EGAM**2-ER(I)**2)**2+(EGAM*W0(I))**2))
+            Q=Q+QQ
+          ENDDO
+          DO I=NLOWLOR+1,NGIGE+NLOWLOR
+            W=W0(I)*(EGAM**2+PI42*TFIN**2)/ER(I)**2
+            SLIM=FERMC*PI42*TFIN**2*W0(I)/ER(I)**5
+            QQ=SIG(I)*W0(I)*(SLIM+EGAM*W/((EGAM**2-ER(I)**2)**2+(EGAM*W)**2))
+            Q=Q+QQ
+          ENDDO
+          SGAMMA=PIH*Q*EGAM**3
+          RETURN
         ELSEIF (NOPTE1.EQ.6) THEN  !MGLO <-Empirical generalization of temperature dependent damping from EGLO(3)
           TFIN=TERM(EINI-EGAM)
           Q=0.
