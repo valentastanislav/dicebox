@@ -27,7 +27,7 @@ real,    dimension(0:270)::           TABENLD
 real,    dimension(1:199,0:20)::      sal,errsal,alpha !TODO somehow smart determine the maximum number of decays in DIS and make these allocatable
 real,    dimension(0:24,0:20)::       F4
 real,    dimension(1:199,1:20)::      despin
-real,    dimension(1:20,0:49,0:1)::   ENDIS
+real,    dimension(1:100,0:49,0:1)::  ENDIS
 real,    dimension(0:270,0:49,0:1)::  TABLD
 integer, dimension(1:3)::             NPSF
 real,    dimension(1:3,0:400)::       TABENPSF,TABPSF

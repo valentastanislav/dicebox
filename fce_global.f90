@@ -14,7 +14,7 @@ real::                                eall,EIN,EFI,ecrit,xrayk,xrayl,max_spin,SU
                                       D0,TRGT_SPIN
 
 integer, dimension(0:49,0:1)::        levdis
-integer, dimension(1:20,0:49,0:1)::   dekod
+integer, dimension(1:100,0:49,0:1)::   dekod
 integer,dimension(:,:),allocatable::  isbspin
 
 real,    dimension(:),allocatable::   MSC_FS
@@ -381,7 +381,7 @@ REAL::                  enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,FSPAC,corrA
             if (corrAlpha.eq.0.0) then
               TABLD(I,J,K) = TABLD(I,J,K) * FSPAC
             else
-              TABLD(I,J,K) = TABLD(I,J,K) * FSPAC * exp(corrAlpha*sqrt(TABENLD(I)-corrDelta))
+              TABLD(I,J,K) = TABLD(I,J,K) * FSPAC * exp(corrAlpha*sqrt(TABENLD(I)-corrDelta)) !TODO do we need to subtract corrDelta twice here?! compare to gnuplot plots!
             endif
           ENDDO
          ENDDO
