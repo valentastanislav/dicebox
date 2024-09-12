@@ -182,19 +182,19 @@ real:: start, finish
         if (.not.allocated(ISDIS)) then
          allocate(ISDIS(0:NLINc,1:20,0:ISUBSC(max_spin),0:1))
         endif 
-        DO ilinc=1,nlinc
+        DO ilinc=0,2
          DO ip=0,1
           DO is=-2,2
-            DO i=1,20
+            DO i=0,20
               STDIS(ilinc,i,is,ip)=0.0
             ENDDO
           ENDDO
-          DO is=0,8
+          DO is=0,ISUBSC(max_spin)
            DO il=1,NDIS(is,ip)
             DO i=1,100
              dummy=ran0(IR4)
             ENDDO
-            isdis(ilinc,il,is,ip)=IR4
+            ISDIS(ilinc,il,is,ip)=IR4
            ENDDO
           ENDDO
          ENDDO
@@ -214,7 +214,7 @@ real:: start, finish
         ILIN=1
         IF (RADW(NUC,ISUB).NE.0.0) write(*,*) 'problem with routine inicializace' !TODO delete if working properly
 !
-        write(*,*) 'before WIDTHS_R for: ',ISUB,' of ',NUC
+        write(*,*) 'before WIDTHS_R for: ',ISUB,' of ',NUC,' STDIS ',SUM(STDIS)
         IF (IPRIM.EQ.1) THEN ! Known primaries
           DO ILINc=1,NLINc
             CALL WIDTHS_R(ILINc,IPINC,SPINC(ILINc),IBIN,ILIN,TOTCON,STCON,GACON,ISCON,TOTDIS,STDISa,GADIS,&
@@ -256,11 +256,14 @@ real:: start, finish
             ! +maxval(STDIS(1,:,-1,1))+maxval(STDIS(1,:,0,1))+maxval(STDIS(1,:,1,1))+maxval(STDIS(1,:,2,1)))
           ENDDO
         ELSE  !Unknown primary intensities
+          write(*,*) 'TOTDIS = ',TOTDIS(1),' and STDIS = ',SUM(STDIS)
+          write(*,*) 'TOTCON = ',TOTCON(1),' and STCON = ',SUM(STCON)
           DO ILINc=1,NLINc
             CALL WIDTHS_R(ILINc,IPINC,SPINC(ILINc),IBIN,ILIN,TOTCON,STCON,GACON,ISCON,TOTDIS,STDIS,GADIS,&
                         ISDIS,LEVCON,IRCON,IRCONc,IFLAG,U,IREGI,EIN,EFI)
-            ! write(*,*) 'TOTDIS = ',TOTDIS(1),' and STDIS = ',SUM(STDIS)
           ENDDO
+          write(*,*) 'TOTDIS = ',TOTDIS(1),' and STDIS = ',SUM(STDIS)
+          write(*,*) 'TOTCON = ',TOTCON(1),' and STCON = ',SUM(STCON)
           DO ILINc=1,NLINc
             RADW(NUC,ISUB)=RADW(NUC,ISUB)+sngl(TOTCON(ILINc))+TOTDIS(ILINc)
           ENDDO
@@ -268,7 +271,7 @@ real:: start, finish
           IBIN=0
           ILIN=1
         ENDIF ! IF (SUM(prim).GT.0.0) THEN
-        write(*,*) 'cascading starting for: ',ISUB,' of ',NUC
+        write(*,*) 'cascading starting for: ',ISUB,' of ',NUC,' rngS ',IR1,IR2,IR3,IR4, ' Gg ',RADW(NUC,ISUB)
 !
 !       The master DO-loop
         DO IEV=1,NEVENTS

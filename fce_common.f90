@@ -1737,7 +1737,7 @@ real::            EGAM,EINI
           ENDIF
           SFCEM1=SGAMMA
           IF (ITYP.EQ.3) RETURN
-        ELSEIF (NOPTM1.EQ.7) THEN   ! Classical Lorentzian on backgroung
+        ELSEIF (NOPTM1.EQ.7) THEN   ! SMLO = Classical Lorentzian on backgroung
           Q=0.                      ! which is described by exponencial fcion
           DO I=1,NGIGM
             QQ=SIGM(I)*EGAM*WM0(I)**2/((EGAM**2-ERM(I)**2)**2+(EGAM*WM0(I))**2)
