@@ -61,7 +61,7 @@ real:: start, finish
 !$OMP ASHELL09,DEL09,TEMPER09,EZERO09,PAIRING09,&
 !$OMP DENPPC,DENPA0,DENPA1,DENPA2,&
 !$OMP DENLO,DENHI,DENPA,DENPB,DENPC,DENPD,&
-!$OMP BN,SPINc,IPINC,NOPTCS,NLINC,CAPFR,&
+!$OMP BN,SPINc,IPINC,NOPTCS,NLINc,CAPFR,&
 !$OMP XRAYK,XRAYL,NENT,ELENT,CONVT,NENK,ELENK,CONVK,&
 !$OMP ECRIT,EALL,factnrm,max_decays,max_spin,prim,errprim,&
 !$OMP ndis,endis,dekod,denum,LVL_CLASS,LVL_ENERGY,delev,despin,deparity,deltx,&
@@ -214,7 +214,7 @@ real:: start, finish
         ILIN=1
         IF (RADW(NUC,ISUB).NE.0.0) write(*,*) 'problem with routine inicializace' !TODO delete if working properly
 !
-        write(*,*) 'before WIDTHS_R for: ',ISUB,' of ',NUC,' STDIS ',SUM(STDIS)
+        write(*,*) 'before WIDTHS_R for: ',ISUB,' of ',NUC
         IF (IPRIM.EQ.1) THEN ! Known primaries
           DO ILINc=1,NLINc
             CALL WIDTHS_R(ILINc,IPINC,SPINC(ILINc),IBIN,ILIN,TOTCON,STCON,GACON,ISCON,TOTDIS,STDISa,GADIS,&
@@ -256,14 +256,10 @@ real:: start, finish
             ! +maxval(STDIS(1,:,-1,1))+maxval(STDIS(1,:,0,1))+maxval(STDIS(1,:,1,1))+maxval(STDIS(1,:,2,1)))
           ENDDO
         ELSE  !Unknown primary intensities
-          write(*,*) 'TOTDIS = ',TOTDIS(1),' and STDIS = ',SUM(STDIS)
-          write(*,*) 'TOTCON = ',TOTCON(1),' and STCON = ',SUM(STCON)
           DO ILINc=1,NLINc
             CALL WIDTHS_R(ILINc,IPINC,SPINC(ILINc),IBIN,ILIN,TOTCON,STCON,GACON,ISCON,TOTDIS,STDIS,GADIS,&
                         ISDIS,LEVCON,IRCON,IRCONc,IFLAG,U,IREGI,EIN,EFI)
           ENDDO
-          write(*,*) 'TOTDIS = ',TOTDIS(1),' and STDIS = ',SUM(STDIS)
-          write(*,*) 'TOTCON = ',TOTCON(1),' and STCON = ',SUM(STCON)
           DO ILINc=1,NLINc
             RADW(NUC,ISUB)=RADW(NUC,ISUB)+sngl(TOTCON(ILINc))+TOTDIS(ILINc)
           ENDDO
@@ -271,11 +267,11 @@ real:: start, finish
           IBIN=0
           ILIN=1
         ENDIF ! IF (SUM(prim).GT.0.0) THEN
-        write(*,*) 'cascading starting for: ',ISUB,' of ',NUC,' rngS ',IR1,IR2,IR3,IR4, ' Gg ',RADW(NUC,ISUB)
+        write(*,*) 'cascading starting for: ',ISUB,' of ',NUC
 !
 !       The master DO-loop
         DO IEV=1,NEVENTS
-          IF (MOD(log10(REAL(IEV-1)),1.).EQ.0) WRITE(*,5410) ITID,IEV
+          IF ((MOD(log10(REAL(IEV-1)),1.).EQ.0).OR.(MOD(IEV,20000).EQ.0)) WRITE(*,5410) ITID,IEV
  5410     FORMAT('+',21X,I6,2X,I10)
           IC_type=0 !0 = gamma, 1 = K-shell, 2 = higher-shell, 3 = pair
           sidlev=.FALSE.
