@@ -896,7 +896,7 @@ real::            EGAM,EINI
           Q=0.
           DO I=1,NGIGE
             W=W0(I)*(EGAM*ER(I)+PI42*TFIN**2)/ER(I)**2
-            QQ=SIG(I)*W0(I)*W*EGAM / (1.0-EXP(-EGAM/TFIN))/((EGAM**2-ER(I)**2)**2+(EGAM*W)**2)
+            QQ=SIG(I)*W*EGAM / (1.0-EXP(-EGAM/TFIN))/((EGAM**2-ER(I)**2)**2+(EGAM*W)**2)
             Q=Q+QQ
           ENDDO
           SGAMMA=PIH*Q*EGAM**3
