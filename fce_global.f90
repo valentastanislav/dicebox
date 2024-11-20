@@ -1605,10 +1605,10 @@ INTEGER::                         I,K,L,ILVL
       ENDDO
 
       WRITE(9,*) 'Direct population of low-lying states from continuum'
-      WRITE(9,*) ' #      E       pop         s_all     s_supr     s_real      J pi'
+      WRITE(9,*) ' #      E       pop         s_all     s_supr     s_real      J pi  exp.depop'
       DO ILVL=1,numlev
         poper=SQRT(POPSVAR(ILVL)+POPERS(ILVL,0))
-        WRITE(9,198) ILVL,elowlev(ILVL),POPULS(ILVL,0),poper,SQRT(POPSVAR(ILVL)),SQRT(POPERS(ILVL,0)),elowsp(ILVL),ilowip(ILVL)
+        WRITE(9,199) ILVL,elowlev(ILVL),POPULS(ILVL,0),poper,SQRT(POPSVAR(ILVL)),SQRT(POPERS(ILVL,0)),elowsp(ILVL),ilowip(ILVL),depop(ILVL),sqrt(depop_err(ILVL))
       ENDDO
 
   198 format(I3,F10.6,F11.7,' +- ',F9.7,' (',F9.7,' , ',F9.7,') ',F4.1,I2)
