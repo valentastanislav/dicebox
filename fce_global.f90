@@ -26,13 +26,14 @@ real,    dimension(0:1,1:5,1:100)::    CONVt,CONVk,CONV_IPF
 
 contains
 !***********************************************************************
-SUBROUTINE READ_EV(NAME,lopopgs,KONTROLMATRIX)
+SUBROUTINE READ_EV(NAME,lopopgs,KONTROLMATRIX,depop,depop_err)
 !     reading of the input file
 INTEGER,PARAMETER::     MAXJC  = 49
 CHARACTER(80)::         TITLE1,TITLE2,TITLE3
 character(80)::         NAME
 logical::               lopopgs
 integer,dimension(:,:),allocatable:: KONTROLMATRIX
+real,dimension(:),allocatable::   depop,depop_err
 INTEGER::               I,J,K,NMU,ipfi,ipar,control
 REAL::                  enrg,spfi
 REAL::                  enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,FSPAC,corrAlpha,corrDelta
@@ -214,10 +215,18 @@ REAL::                  enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,FSPAC,corrA
       if (.not.allocated(isbspin)) then
         allocate (isbspin(1:numlev,1:2))
       endif
+      if (.not.allocated(depop)) then
+        allocate (depop(1:numlev))
+      endif
+      if (.not.allocated(depop_err)) then
+        allocate (depop_err(1:numlev))
+      endif
       DO i=1,199
         prim(i)=0.0
       ENDDO
       DO i=1,numlev
+       depop(i)=0.0
+       depop_err(i)=0.0
        READ (5,*) enrg,spfi,ipfi,denum(i),prim(i),errprim(i),LVL_CLASS(i)
        write(*,*) 'reading lvl # ',i,' at energy ',enrg, ' with Iprim =',prim(i)
        IF((ipfi.NE.0).AND.(ipfi.NE.1)) THEN
@@ -261,6 +270,8 @@ REAL::                  enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,FSPAC,corrA
             p_conv(i,k)=alpha(i,k)/(1+alpha(i,k))
             p_conv_K(i,k)=alphak/(1+alpha(i,k))
             p_conv_IPF(i,k)=(alphaIPF+alphak)/(1+alpha(i,k))
+            depop(i)=depop(i)+sal(i,k)*(1+alpha(i,k))*factnrm
+            depop_err(i)=depop_err(i)+(errsal(i,k)*(1+alpha(i,k))*factnrm)**2
            ENDIF
          ENDDO
         ENDDO
@@ -319,7 +330,7 @@ REAL::                  enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,FSPAC,corrA
           ENDDO
           DO J = 10, MAXJC
             TABLD(I,J,0) = 0.0
-            TABLD(I,J,1) = 0.0            
+            TABLD(I,J,1) = 0.0
           ENDDO
         ENDDO
         CLOSE (UNIT=5,STATUS='KEEP')
@@ -1572,11 +1583,11 @@ real::                            RADAVG,RADVAR,RADFLUCT
       RETURN
 END SUBROUTINE WRITE_DICE_PRO
 !***********************************************************************
-SUBROUTINE WRITE_DICE_POPS(POPULT,POPERT,POPVAR,COVAP,POPULS,POPERS,POPSVAR,COVAS)
+SUBROUTINE WRITE_DICE_POPS(POPULT,POPERT,POPVAR,COVAP,POPULS,POPERS,POPSVAR,COVAS,depop,depop_err)
 !TODO navazat pripadne lepsi vypis pro popul_depopul grafy
 !***********************************************************************
 real,dimension(:,:),allocatable:: POPULT,POPERT,POPULS,POPERS
-real,dimension(:),allocatable::   POPVAR,POPSVAR
+real,dimension(:),allocatable::   POPVAR,POPSVAR,depop,depop_err
 real,dimension(:,:),allocatable:: COVAP,COVAS
 REAL,dimension(:,:),allocatable:: CONO
 REAL::                            poper
@@ -1587,20 +1598,21 @@ INTEGER::                         I,K,L,ILVL
 
       OPEN(9,FILE='DICE.PRO',ACCESS='APPEND',STATUS='OLD')
       WRITE(9,*) 'Population of low-lying states'
-      WRITE(9,*) ' #      E       pop       s_all    s_supr    s_real    J pi'
+      WRITE(9,*) ' #      E       pop         s_all     s_supr     s_real      J pi  exp.depop'
       DO ILVL=1,numlev
         poper=SQRT(POPVAR(ILVL)+POPERT(ILVL,0))
-        WRITE(9,198) ILVL,elowlev(ILVL),POPULT(ILVL,0),poper,SQRT(POPVAR(ILVL)),SQRT(POPERT(ILVL,0)),elowsp(ILVL),ilowip(ILVL)
+        WRITE(9,199) ILVL,elowlev(ILVL),POPULT(ILVL,0),poper,SQRT(POPVAR(ILVL)),SQRT(POPERT(ILVL,0)),elowsp(ILVL),ilowip(ILVL),depop(ILVL),sqrt(depop_err(ILVL))
       ENDDO
 
       WRITE(9,*) 'Direct population of low-lying states from continuum'
-      WRITE(9,*) ' #      E       pop       s_all    s_supr    s_real    J pi'
+      WRITE(9,*) ' #      E       pop         s_all     s_supr     s_real      J pi'
       DO ILVL=1,numlev
         poper=SQRT(POPSVAR(ILVL)+POPERS(ILVL,0))
         WRITE(9,198) ILVL,elowlev(ILVL),POPULS(ILVL,0),poper,SQRT(POPSVAR(ILVL)),SQRT(POPERS(ILVL,0)),elowsp(ILVL),ilowip(ILVL)
       ENDDO
 
   198 format(I3,F10.6,F11.7,' +- ',F9.7,' (',F9.7,' , ',F9.7,') ',F4.1,I2)
+  199 format(I3,F10.6,F11.7,' +- ',F9.7,' (',F9.7,' , ',F9.7,') ',F4.1,I2,F9.6,F9.6)
 
       ! !TODO vysledky s populacemi nizkolezicich hladin
       ! DO K=1,NUMLEV

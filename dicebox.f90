@@ -45,7 +45,7 @@ real,dimension(:,:,:),allocatable::  POPTLEV,POPSLEV
 real::                            RADVAR
 real,dimension(:),allocatable::   RADWID,RADWDI
 real,dimension(:,:),allocatable:: POPULT,POPERT,POPULS,POPERS
-real,dimension(:),allocatable::   POPVAR,POPSVAR
+real,dimension(:),allocatable::   POPVAR,POPSVAR,depop,depop_err
 real,dimension(:,:),allocatable:: COVAP,COVAS
 real:: start, finish
 
@@ -69,7 +69,7 @@ real:: start, finish
 !$OMP TABENLD,TABLD,NLD,&
 !$OMP TABENPSF,TABPSF,NPSF,&
 !$OMP NBIN,DELTA,gamma_multiplicita,N_MSC_FS,MIN_MULTIPLICITA,MAX_MULTIPLICITA,MSC_FS,BIN_WIDTH,&
-!$OMP RADWID,RADWDI,RADVAR,&
+!$OMP RADWID,RADWDI,RADVAR,depop,depop_err,&
 !$OMP intermediate2,intermediate3,XSC_work)
       ITID = OMP_GET_THREAD_NUM()
       IFLAG=0 !TODO ocesat od IFLAG
@@ -87,7 +87,7 @@ real:: start, finish
         IF (.not.log_check) THEN
           STOP 'Invalid input: file not found'
         ENDIF
-        CALL READ_EV(NAME,lopopgs,KONTROLMATRIX)
+        CALL READ_EV(NAME,lopopgs,KONTROLMATRIX,depop,depop_err)
         OPEN (UNIT=12,FILE='PSF_GS.DAT',STATUS='UNKNOWN')  !to GS
         OPEN (UNIT=13,FILE='PSF_INI.DAT',STATUS='UNKNOWN') !from initial level
         write(12,*) 'E_\gamma  PSF(E1)[MeV^-3]  PSF(M1)[MeV^-3]  PSF(E2)[MeV^-5]'
@@ -381,7 +381,7 @@ real:: start, finish
       CALL CALC_POPS(POPSLEV,POPULS,POPERS,POPSVAR,COVAS)
       CALL WRITE_PARAMS
       CALL WRITE_DICE_PRO(RADWID(0),RADVAR,RADWDI(0),NDEAD,NISOM)
-      CALL WRITE_DICE_POPS(POPULT,POPERT,POPVAR,COVAP,POPULS,POPERS,POPSVAR,COVAS)
+      CALL WRITE_DICE_POPS(POPULT,POPERT,POPVAR,COVAP,POPULS,POPERS,POPSVAR,COVAS,depop,depop_err)
       call cpu_time(finish)
       print '("Run Time = ",f10.3," seconds.")',finish-start
       END PROGRAM DICE_EVENT
