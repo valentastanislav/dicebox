@@ -34,7 +34,7 @@ character(80)::         NAME
 logical::               lopopgs
 integer,dimension(:,:),allocatable:: KONTROLMATRIX
 real,dimension(:),allocatable::   depop,depop_err
-INTEGER::               I,J,K,NMU,ipfi,ipar,control
+INTEGER::               I,J,K,NMU,ipfi,ipar,control,J_range
 REAL::                  enrg,spfi
 REAL::                  enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,FSPAC,corrAlpha,corrDelta
       OPEN (UNIT=5,FILE=NAME,STATUS='OLD')
@@ -300,6 +300,8 @@ REAL::                  enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,FSPAC,corrA
         nddd=levdis(ISUBSC(spfi),ipfi)
        ENDDO
       ENDDO
+      READ (5,*)
+      READ (5,*) dummy, dummy, TKpair, TKeshell, TKematch !and so on, but we don't need those yet
 !
       CLOSE (UNIT=5,STATUS='KEEP')
       WRITE(*,*) 'nddd ',nddd,' numlev ',numlev,' sum(Iprim)=',SUM(prim)
@@ -318,17 +320,17 @@ REAL::                  enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,FSPAC,corrA
         NAME = "LDTAB_K.DAT"
         OPEN (UNIT=5,FILE=NAME,STATUS='OLD')
         READ(5,*) 
-        READ(5,*) NLD
+        READ(5,*) NLD, J_range
         READ(5,*) 
         DO I = NLD, 1, -1
-          READ(5,*) TABENLD(I),DUMMY,(TABLD(I,J,0),J=0,9) 
+          READ(5,*) TABENLD(I),DUMMY,(TABLD(I,J,0),J=0,J_range) 
         ENDDO
         DO I = 1, NLD
-          DO J = 0, 9
+          DO J = 0, J_range
             TABLD(I,J,0) = TABLD(I,J,0) / 2.0 ! Kawano gives total NLD (p-independent)
             TABLD(I,J,1) = TABLD(I,J,0) 
           ENDDO
-          DO J = 10, MAXJC
+          DO J = J_range+1, MAXJC
             TABLD(I,J,0) = 0.0
             TABLD(I,J,1) = 0.0
           ENDDO
@@ -1451,6 +1453,8 @@ CHARACTER*14 tdens,tsfe1,tsfm1,tsfe2
           tdens='BSFG-vE2009'
         ELSEIF (NOPTDE.EQ.11) THEN
           tdens='(Goriely) tabs' 
+        ELSEIF (NOPTDE.EQ.12) THEN
+          tdens='CoH3 tabs' 
         ENDIF
   
         IF (NOPTE1.EQ.0) THEN
@@ -1468,7 +1472,7 @@ CHARACTER*14 tdens,tsfe1,tsfm1,tsfe2
         ELSEIF (NOPTE1.EQ.6) THEN
           tsfe1='MGLO'
         ELSEIF (NOPTE1.EQ.7) THEN
-          tsfe1='EELO'
+          tsfe1='SMLO'
         ELSEIF (NOPTE1.EQ.8) THEN
           tsfe1='1SLO+KMF'
         ELSEIF (NOPTE1.EQ.9) THEN
@@ -1477,6 +1481,8 @@ CHARACTER*14 tdens,tsfe1,tsfm1,tsfe2
           tsfe1='KMF->SLO'
         ELSEIF (NOPTE1.EQ.11) THEN
           tsfe1='(Goriely) tabs'
+        ELSEIF (NOPTE1.EQ.28) THEN
+          tsfe1='CoH3 GL'
         ENDIF  !TODO continue updating these and decide if to be used
   
         IF (NOPTM1.EQ.0) THEN
@@ -1485,6 +1491,8 @@ CHARACTER*14 tdens,tsfe1,tsfm1,tsfe2
           tsfm1='SLO'
         ELSEIF (NOPTM1.EQ.4) THEN
           tsfm1='SLO+SP'
+        ELSEIF (NOPTM1.EQ.7) THEN
+          tsfm1='SMLO'
         ELSEIF (NOPTM1.EQ.11) THEN
           tsfm1='(Goriely) tabs'
         ENDIF

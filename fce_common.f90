@@ -11,6 +11,7 @@ integer::                             max_decays,numlev,NOPTDE
 
 real::                                factnrm,BN,AMASS,DELTA,PAIRING,FJ
 real::                                ASHELL09,DEL09,TEMPER09,EZERO09,PAIRING09,SIG_CUSTOM,EZERO,TEMPER,DEL,ASHELL
+real::                                TKpair, TKeshell, TKematch ! Kawano's stuff
 real::                                DENLO,DENHI,DENPA,DENPB,DENPC,DENPD,ZNUM,DENPPC,DENPA0,DENPA1,DENPA2
 real::                                FERMC,TCONST,PAIR_PSF,DEG,DMG,QEL,EK0
 real::                                EGZERO,DIPSLP,DIPZER,EFEC_E
@@ -23,12 +24,12 @@ real,    dimension(1:2)::             spinc
 real,    dimension(1:4)::             PAR_E1,PAR_M1
 real,    dimension(1:5)::             ER,SIG,W0,ERM,SIGM,WM0,ERE,SIGE,WE0
 real,    dimension(1:199)::           LVL_ENERGY,prim,errprim,elowlev,elowsp !TODO maybe make these allocatable
-real,    dimension(0:270)::           TABENLD
+real,    dimension(0:330)::           TABENLD !TODO make this allocatable
 real,    dimension(1:199,0:20)::      sal,errsal,alpha !TODO somehow smart determine the maximum number of decays in DIS and make these allocatable
 real,    dimension(0:24,0:20)::       F4
 real,    dimension(1:199,1:20)::      despin
 real,    dimension(1:100,0:49,0:1)::  ENDIS
-real,    dimension(0:270,0:49,0:1)::  TABLD
+real,    dimension(0:330,0:49,0:1)::  TABLD !TODO make this allocatable
 integer, dimension(1:3)::             NPSF
 real,    dimension(1:3,0:400)::       TABENPSF,TABPSF
 real,    dimension(0:1000,0:49,0:1):: EIGENVAL
@@ -1660,7 +1661,7 @@ real::            EGAM,EINI
           SGAMMA=PAR_E1(1)*PIH*Q*EGAM**3
           SFCEE1=SGAMMA
           RETURN
-        ELSEIF (NOPTE1.EQ.25) THEN    !Pure Chrien+Kopecky model but Toshihiko's T
+        ELSEIF (NOPTE1.EQ.25) THEN    !Pure Chrien+Kopecky model but Toshihiko's interpretation of temperature, NOT exactly his temperature!!!
           TFIN=TERM(BN-EGAM)
           Q=0.
           DO I=1,NGIGE
@@ -1674,8 +1675,19 @@ real::            EGAM,EINI
           SGAMMA=PIH*Q*EGAM**3
           SFCEE1=SGAMMA
           RETURN
-        ELSEIF (NOPTE1.EQ.28) THEN  !Hokus - pokus
-          SGAMMA=DEG*EGAM**8
+        ELSEIF (NOPTE1.EQ.28) THEN  ! CoH3 GL model (= Kawano's implementation of GLO model)
+          TFIN=TERM_TK(BN-EGAM)
+          Q=0.
+          DO I=1,NGIGE
+            W=W0(I)*(EGAM**2+PI42*TFIN**2)/ER(I)**2
+          !     ^ .......... energy and temperature dependent width
+            SLIM=FERMC*PI42*TFIN**2*W0(I)/ER(I)**5
+          !     ^ ...... the non-zero limit at Egam-->0
+            QQ=SIG(I)*W0(I)*(SLIM+EGAM*W/((EGAM**2-ER(I)**2)**2+(EGAM*W)**2))
+            Q=Q+QQ
+          ENDDO
+          SGAMMA=PIH*Q*EGAM**3
+          SFCEE1=SGAMMA
           RETURN
         ENDIF
       ENDIF
@@ -2024,6 +2036,37 @@ real::            EEXC
       TERMDILG=(1.0 + SQRT(1.0+4.0*ASHELL*EFEC_E))/2.0/ASHELL
       RETURN
       END FUNCTION TERMDILG
+!***********************************************************************
+REAL FUNCTION TERM_TK(EEXC)
+      real:: EEXC
+      REAL:: astar
+      astar = 0.126181*AMASS + 7.52191e-05*AMASS*AMASS
+      !let's determine astar
+      if(TKematch.LE.0.0) then ! (not only) Kawano's Ematch is always 0.0 or higher, but let's be safe here
+        astar = astar
+      else
+        if(EEXC.LT.TKematch) then
+          if((TKematch-TKpair).GT.0.0) then
+            astar = astar*(1.0+(1.0-exp(-0.31*(AMASS)**(-0.33333)*(TKematch-TKpair)))*TKeshell/(TKematch-TKpair)) !corresponds to ldShellCorrection(TKematch-TKpair,astar,TKeshell,AMASS)
+          elseif((TKematch-TKpair).EQ.0.0) then
+            astar = astar*(1.0+0.31*(AMASS)**(-0.33333)*TKeshell)
+          else
+            astar = astar
+          endif
+        else
+          if((EEXC-TKpair).GT.0.0) then
+            astar = astar*(1.0+(1.0-exp(-0.31*(AMASS)**(-0.33333)*(EEXC-TKpair)))*TKeshell/(EEXC-TKpair)) !corresponds to ldShellCorrection(EEXC-TKpair ,astar,TKeshell,AMASS)
+          elseif((EEXC-TKpair).EQ.0.0) then
+            astar = astar*(1.0+0.31*(AMASS)**(-0.33333)*TKeshell)
+          else
+            astar = astar
+          endif
+        endif
+      endif !determine astar
+      if (EEXC.LT.0.) EEXC=0.
+      TERM_TK=SQRT(EEXC/astar) ! .cpp says t = (ex < 0.0) ? 0.0 : sqrt(ex/a); // but how can ex be <0? so this should be fine
+      return
+END FUNCTION TERM_TK
 !***********************************************************************
 REAL FUNCTION SMFREQ()
 !
