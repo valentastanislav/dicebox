@@ -300,8 +300,10 @@ REAL::                  enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,FSPAC,corrA
         nddd=levdis(ISUBSC(spfi),ipfi)
        ENDDO
       ENDDO
-      READ (5,*)
-      READ (5,*) dummy, dummy, TKpair, TKeshell, TKematch !and so on, but we don't need those yet
+      IF (NOPTE1.EQ.28) THEN
+        READ (5,*)
+        READ (5,*) dummy, dummy, TKpair, TKeshell, TKematch !and so on, but we don't need those yet
+      ENDIF
 !
       CLOSE (UNIT=5,STATUS='KEEP')
       WRITE(*,*) 'nddd ',nddd,' numlev ',numlev,' sum(Iprim)=',SUM(prim)
