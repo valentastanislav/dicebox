@@ -1954,13 +1954,21 @@ real::            EGAM,EINI
           SGAMMA = SGAMMA + APSF(EGAM,3)*EGAM**5
           SFCEE2=SGAMMA-SFCEM1
           RETURN
-        ELSE !NOTE THIS IS HERE BASICLY FOR NOPTE2.EQ.1
+        ELSEIF(NOPTE2.EQ.1) THEN
           Q=0.
           DO I=1,NGIGE2
             QQ=(SIGE(I)*WE0(I)**2)/(EGAM*((EGAM**2-ERE(I)**2)**2+(EGAM*WE0(I))**2))
             Q=Q+QQ
           ENDDO
           SGAMMA=SGAMMA+PIHQ*Q*EGAM**5
+          SFCEE2=SGAMMA-SFCEM1
+        ELSEIF(NOPTE2.EQ.4) THEN
+          Q=0.
+          DO I=1,NGIGE2
+            QQ=(SIGE(I)*WE0(I)**2)/(EGAM*((EGAM**2-ERE(I)**2)**2+(EGAM*WE0(I))**2))
+            Q=Q+QQ
+          ENDDO
+          SGAMMA=SGAMMA+(PIHQ*Q+QEL)*EGAM**5
           SFCEE2=SGAMMA-SFCEM1
         ENDIF
         RETURN
