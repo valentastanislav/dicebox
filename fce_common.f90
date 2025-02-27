@@ -928,7 +928,7 @@ real::            EGAM,EINI
           RETURN
         ELSEIF (NOPTE1.EQ.9) THEN  !Our empirical generalization of temperature
 !          dependent damping according to Kopecky in Chrien model (MGLO)
-!          with the first resonance of Lorentzian type
+!          with the first resonance of Lorentzian type = pygmy
           TFIN=TERM(EINI-EGAM)
           Q=0.
           QQ=SIG(1)*(EGAM*W0(1)**2/((EGAM**2-ER(1)**2)**2+(EGAM*W0(1))**2))
@@ -1083,7 +1083,7 @@ real::            EGAM,EINI
           ENDDO
           SGAMMA=PAR_E1(1)*PIH*Q*EGAM**3
           RETURN
-        ELSEIF (NOPTE1.EQ.77) THEN  ! MGLO(6) with constant T and Lorentzian LLR
+        ELSEIF (NOPTE1.EQ.77) THEN  ! MGLO(6) with constant T and Lorentzian LLR pygmy
           TFIN=TCONST
           Q=0.
           DO I=1,NLOWLOR
@@ -1100,7 +1100,7 @@ real::            EGAM,EINI
           SGAMMA=PAR_E1(1)*PIH*Q*EGAM**3
           RETURN
         ELSEIF (NOPTE1.EQ.66) THEN  !MGLO <-Empirical generalization of temperature dependent damping from EGLO(3)
-!                                    ! NLOWLOR resonances of Lorentzian shape, then NGIGE resonances of MGLO shape
+! NLOWLOR resonances of Lorentzian shape pygmy, then NGIGE resonances of MGLO shape
           TFIN=TERM(EINI-EGAM)
           Q=0.
           DO I=1,NLOWLOR
@@ -1979,7 +1979,7 @@ REAL FUNCTION TERM(EEXC)
 real::            EEXC
       EFEC_E=EEXC-PAIR_PSF
       IF (EFEC_E.LT.0.) EFEC_E=0.
-      TERM=SQRT((EFEC_E)/ASHELL) ! TERM=SQRT((MAX(0.,EEXC-PAIR_PSF))/ASHELL)
+      TERM=SQRT((EFEC_E)/ASHELL) ! TERM=SQRT((MAX(0.,EEXC-PAIR_PSF))/ASHELL)        
       RETURN
       END FUNCTION TERM
 !***********************************************************************
