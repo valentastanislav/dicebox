@@ -34,7 +34,7 @@ character(80)::         NAME
 logical::               lopopgs
 integer,dimension(:,:),allocatable:: KONTROLMATRIX
 real,dimension(:),allocatable::   depop,depop_err
-INTEGER::               I,J,K,NMU,ipfi,ipar,control,J_range
+INTEGER::               I,J,K,NMU,ipfi,ipar,control,J_range,tabJ
 REAL::                  enrg,spfi
 REAL::                  enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,FSPAC,corrAlpha,corrDelta
       OPEN (UNIT=5,FILE=NAME,STATUS='OLD')
@@ -353,16 +353,22 @@ REAL::                  enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,FSPAC,corrA
         NAME = "LDTAB.DAT"
         OPEN (UNIT=5,FILE=NAME,STATUS='OLD')
         READ(5,*) 
-        READ(5,*) NLD, SPACRES,spfi,ipfi,corrAlpha,corrDelta
+        READ(5,*) NLD, tabJ, SPACRES, spfi, ipfi, corrAlpha, corrDelta
         READ(5,*) 
         DO I = 1, NLD
-          READ(5,*) TABENLD(I),DUMMY,DUMMY,DUMMY,DUMMY,(TABLD(I,J,0),J=0,MAXJC)
+          READ(5,*) TABENLD(I),DUMMY,DUMMY,DUMMY,DUMMY,(TABLD(I,J,0),J=0,tabJ)
+          DO J=tabJ+1,MAXJC
+            TABLD(I,J,0)=0.0
+          ENDDO
         ENDDO
         READ(5,*) 
         READ(5,*) 
         READ(5,*) 
         DO I = 1, NLD
-          READ(5,*) TABENLD(I),DUMMY,DUMMY,DUMMY,DUMMY,(TABLD(I,J,1),J=0,MAXJC) 
+          READ(5,*) TABENLD(I),DUMMY,DUMMY,DUMMY,DUMMY,(TABLD(I,J,1),J=0,tabJ)
+          DO J=tabJ+1,MAXJC
+            TABLD(I,J,1)=0.0
+          ENDDO
         ENDDO
         IF (TABENLD(NLD).LT.BN) THEN
           WRITE(*,*) 'tabulated LD does not span up to the initial state: ',TABENLD(NLD),' vs ',BN
