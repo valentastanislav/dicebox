@@ -95,8 +95,8 @@ real:: start, finish
         write(13,*) 'E_\gamma  PSF(E1)[MeV^-3]  PSF(M1)[MeV^-3]  PSF(E2)[MeV^-5]'
         EG_MAX = 21.0
         EG_STEP = 0.05
-        DO I = 1, INT(EG_MAX/EG_STEP)
-          eg = FLOAT(I)*EG_STEP
+        DO I = 0, INT(EG_MAX/EG_STEP)
+          eg = max(1e-6,FLOAT(I)*EG_STEP)
           write(12,201) eg,sgamma(eg,eg,1)/eg**3,sgamma(eg,eg,3)/eg**3,sgamma(eg,eg,4)/eg**5
           write(13,201) eg,sgamma(eg,BN,1)/eg**3,sgamma(eg,BN,3)/eg**3,sgamma(eg,BN,4)/eg**5
     201   format(f7.3,4e13.5)
@@ -104,7 +104,7 @@ real:: start, finish
         CLOSE (12)
         CLOSE (13)
 !******adjustace*nbin***************************************************
-        CALL ADJUST_NBIN(SPINC(1),NBIN)
+        IF(LMODE.EQ.0) CALL ADJUST_NBIN(SPINC(1),NBIN)
         NVLAKEN=OMP_GET_NUM_THREADS()
         if (.not.allocated(gamma_multiplicita)) then
          allocate(gamma_multiplicita(1:NREAL*NSUB,0:MAX_MULTIPLICITA))
@@ -126,7 +126,7 @@ real:: start, finish
         CALL CNTRLMTRX(KONTROLMATRIX,4,NREAL)  !should be OK
         CALL INICIALIZACE(NDEAD,NISOM,RADW,RADWID,RADWDI,POPTLEV,POPSLEV)
         IF (LMODE.EQ.1) THEN
-          CALL GENERATE_GOE_EIGEN_VAL(IR1,700,IFLAG,U) !Maximum allowed dimension (2nd parameter) is 1000
+          CALL GENERATE_GOE_EIGEN_VAL(KONTROLMATRIX(1,1),700,IFLAG,U) !Maximum allowed dimension (2nd parameter) is 1000
         ENDIF
       ENDIF
 !$OMP BARRIER

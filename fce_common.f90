@@ -649,7 +649,7 @@ real::                                U
           A(J,I)=A(I,J)
          ENDDO !J
         ENDDO !I
-        CALL RSM1(N,N,A,RA)     
+        CALL RSM1(N,N,A,RA)
         CALL SORT(N,RA,RAORD)
         DO I = 1,N
           RA(I) = RAORD(I)
@@ -657,8 +657,8 @@ real::                                U
 
         M=-1
         DO L=1,N
-         X=RA(L)	      
-         IF (DABS(X).lt.0.9d0) THEN         !Only eigenval. in the middle are treated
+         X=RA(L)
+         IF (DABS(X).lt.0.9d0) THEN     !Only eigenval. in the middle are treated
           M=M+1
           EIGENVAL(M,IS,IP)=FLOAT(N-1)*(SNGL((X*DSQRT(1.d0-X**2)+DASIN(X))/DPI+.5d0))
          ENDIF

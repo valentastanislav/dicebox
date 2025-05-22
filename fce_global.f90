@@ -162,37 +162,39 @@ REAL::                  enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,FSPAC,corrA
 !     Let's handle alpha_K now
 !     number of energies
       READ (5,*) NENK
-!     add 3 energies to the beginning (corresponding to below threshold) and put zeroes to the coefficients
-      DO K=1,3
-        ELENK(K)=ELENT(NENT-NENK-3+K)
+!     add 1 energy to the beginning (corresponding to below threshold) and put zeroes to the coefficients
+      DO K=1,1
+        write(*,*) 'adding energy ',ELENT(NENT-NENK-1+K),' with ICC ',CONVK(0,1,K)
+        ELENK(K)=ELENT(NENT-NENK-1+K)
         DO I=0,1
           DO J=1,NMU
-            CONVK(I,J,K)=0.0E+00
+            CONVK(I,J,K)=1e6*tiny(CONVK(I,J,K))
           ENDDO
         ENDDO
       ENDDO
 !     now read the rest - input itself
-      READ (5,*) (ELENK(K),K=1+3,NENK+3)
-      READ (5,*) (((CONVK(I,J,K),I=0,1),J=1,NMU),K=1+3,NENK+3)
-!     now tell the code we've added 3 energies
-      NENK=NENK+3
+      READ (5,*) (ELENK(K),K=1+1,NENK+1)
+      READ (5,*) (((CONVK(I,J,K),I=0,1),J=1,NMU),K=1+1,NENK+1)
+!     now tell the code we've added 1 energy
+      NENK=NENK+1
+
 !     Let's handle alpha_IPF now
 !     number of energies
       READ (5,*) NEN_IPF
-!     add 3 energies to the beginning (corresponding to below threshold) and put zeroes to the coefficients
-      DO K=1,3
-        ELEN_IPF(K)=ELENT(NENT-NEN_IPF-3+K)
+!     add 1 energies to the beginning (corresponding to below threshold) and put zeroes to the coefficients
+      DO K=1,1
+        ELEN_IPF(K)=ELENT(NENT-NEN_IPF-1+K)
         DO I=0,1
           DO J=1,NMU
-            CONV_IPF(I,J,K)=0.0E+00
+            CONV_IPF(I,J,K)=1e6*tiny(CONV_IPF(I,J,K)) !assigns very small positive number close to zero
           ENDDO
         ENDDO
       ENDDO
 !     now read the rest - input itself
-      READ (5,*) (ELEN_IPF(K),K=1+3,NEN_IPF+3)
-      READ (5,*) (((CONV_IPF(I,J,K),I=0,1),J=1,3),K=1+3,NEN_IPF+3)
-!     now tell the code we've added 3 energies
-      NEN_IPF=NEN_IPF+3
+      READ (5,*) (ELEN_IPF(K),K=1+1,NEN_IPF+1)
+      READ (5,*) (((CONV_IPF(I,J,K),I=0,1),J=1,3),K=1+1,NEN_IPF+1)
+!     now tell the code we've added 1 energy
+      NEN_IPF=NEN_IPF+1
 !
 !     Data related to the discrete levels (J, pi, Eexc, primary intensities
 !     and branchings):
@@ -269,10 +271,14 @@ REAL::                  enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,FSPAC,corrA
             if (alpha(i,k).LE.1e-6) alpha(i,k)=ALPH_TOT(enrg,spfi,ipfi,enrgf,desp,ipar,dlt**2,nent,elent,convt)
             alphak=ALPH_TOT(enrg,spfi,ipfi,enrgf,desp,ipar,dlt**2,nenk,elenk,convk)
             alphaIPF=ALPH_TOT(enrg,spfi,ipfi,enrgf,desp,ipar,dlt**2,NEN_IPF,ELEN_IPF,CONV_IPF)
-            if (alphak.GT.alpha(i,k)) alphak=alpha(i,k)
-            p_conv(i,k)=alpha(i,k)/(1+alpha(i,k))
-            p_conv_K(i,k)=alphak/(1+alpha(i,k))
-            p_conv_IPF(i,k)=(alphaIPF+alphak)/(1+alpha(i,k))
+            if ((alphak + alphaIPF) > alpha(i,k)) then
+              dummy = alpha(i,k) / (alphak + alphaIPF)
+              alphak   = alphak   * dummy
+              alphaIPF = alphaIPF * dummy
+            endif
+            p_conv(i,k)=alpha(i,k)/(1.0+alpha(i,k))
+            p_conv_K(i,k)=alphak/(1.0+alpha(i,k))
+            p_conv_IPF(i,k)=(alphaIPF+alphak)/(1.0+alpha(i,k))
             depop(i)=depop(i)+sal(i,k)*(1+alpha(i,k))*factnrm
             depop_err(i)=depop_err(i)+(errsal(i,k)*(1+alpha(i,k))*factnrm)**2
            ENDIF
@@ -613,7 +619,7 @@ REAL,dimension(1:2)::                 SIMPL,GG
 !     If you use MODE=1 or 2 you have to set IBIN=1 and ILIN=1 !
 !
       IF (IREGI.EQ.0) THEN
-        IF (MODE.NE.0) THEN
+        IF (MODE.NE.0) THEN ! primaries
           EIN=BN
           Q=0.0
         ELSE
@@ -660,11 +666,11 @@ REAL,dimension(1:2)::                 SIMPL,GG
            IT1=IT
            IT2=IT
           ENDIF
-      STCON(MODE,IBIN,ISBS,IPFI)=0.D+0
-      IF (iregi.eq.1) then
-       ISEED=SEEDS(mode,spin,ipin,ilin,ibin,LEVCON,IRCON,IRCONc)
-       GOTO 24
-      ENDIF
+          STCON(MODE,IBIN,ISBS,IPFI)=0.D+0
+          IF (iregi.eq.1) then
+            ISEED=SEEDS(mode,spin,ipin,ilin,ibin,LEVCON,IRCON,IRCONc)
+            GOTO 24
+          ENDIF
 !
       DO I=IBIN+1,NBIN
        NL=LEVCON(I,ISUBSC(SPFI),IPFI)-LEVCON(I-1,ISUBSC(SPFI),IPFI)
@@ -720,7 +726,7 @@ REAL,dimension(1:2)::                 SIMPL,GG
             ELSE
               DMIX2 = 0.0
             ENDIF
-            alpha = ALPH_TOT(EG,spfi,ipfi,0.0,spin,ipin,DMIX2,nent,elent,convt)
+            alpha = ALPH_TOT(EG,spin,ipin,0.0,spfi,ipfi,DMIX2,nent,elent,convt)
             Z = Z + (1. + alpha) * (GG(1)+GG(2))
           ENDIF
          ENDDO  !IL
@@ -793,11 +799,11 @@ REAL,dimension(1:2)::                 SIMPL,GG
            ELSE
              DMIX2 = 0.0
            ENDIF
-           alpha = ALPH_TOT(EG,spfi,ipfi,0.0,spin,ipin,DMIX2,nent,elent,convt)
+           alpha = ALPH_TOT(EG,spin,ipin,0.0,spfi,ipfi,DMIX2,nent,elent,convt)
            Z = Z + (1. + alpha) * (GG(1)+GG(2))
          ENDIF
         ENDIF !end of MODE.EQ.0
-       ELSE ! in IF (NOPTFL.GE.1) THEN
+       ELSE ! in IF (NOPTFL.GE.1) THEN, so this is NOPTFL.EQ.0
         GG(2)=0.0
         DO ITT=IT1,IT2
          GG(ITT-IT1+1)=SIMPL(ITT-IT1+1)
@@ -849,7 +855,7 @@ SUBROUTINE ONESTEP(MODE,IPIN,SPIN,IBIN,ILIN,TOTCON,STCON,GACON,ISCON,TOTDIS,STDI
 SPFI,IBFI,ILFI,DMIX2,SIGN,IR,IRX,LEVCON,sall,U,IFLAG,EIN,EFI,IREGI,IC_type,IRCON,IRCONc)
 !should be OK, changes EIN,EFI, outputs DMIX2,IC_type,sign
 !***********************************************************************
-REAL::                                SP,SPF,ALPHA,ALPHAK,ALPHAIPF,SPAC,EG,Z,G1,G2,GSQ,Q1,dummy,RN,G
+REAL::                                SP,SPF,ALPHA,ALPHAK,ALPHAIPF,SPAC,EG,Z,G1,G2,GSQ,Q1,dummy,RN,G,SCALE
 DOUBLE PRECISION::                    AUX0,DRN,GAC
 INTEGER::                             IPF,ISPF,ISEED,ISEEDEN,deaux,ISP,ISBS,IT,I,NL,IL,ITT,IT1,IT2,NLEV1
 REAL,dimension(1:2)::                 SIMPL,GG
@@ -1001,17 +1007,22 @@ integer,dimension(:,:,:,:),allocatable::ISDIS
       ENDIF
       dummy=RAN0(IRX)
       ALPHA=ALPH_TOT(EIN,SPIN,IPIN,EFI,SPFI,IPFI,DMIX2,NENT,ELENT,CONVT)
-      IF (dummy.GT.(ALPHA/(1+ALPHA))) THEN
-        IC_type=0
+      IF (dummy.GT.(ALPHA/(1.0+ALPHA))) THEN
+        IC_type=0   ! gamma emission
       ELSE
         ALPHAK=ALPH_TOT(EIN,SPIN,IPIN,EFI,SPFI,IPFI,DMIX2,NENK,ELENK,CONVK)
-        ALPHAIPF=ALPH_TOT(EIN,SPIN,IPIN,EFI,SPFI,IPFI,DMIX2,NEN_IPF,ELEN_IPF,CONV_IPF)+ALPHAK
-        IF (dummy.LE.(ALPHAK/(1+ALPHA))) THEN
-          IC_type=1
-        ELSEIF (dummy.LE.(ALPHAIPF/(1+ALPHA))) THEN
-          IC_type=3
+        ALPHAIPF = ALPH_TOT(EIN,SPIN,IPIN,EFI,SPFI,IPFI,DMIX2,NEN_IPF,ELEN_IPF,CONV_IPF)
+        IF((ALPHAK+ALPHAIPF).GT.ALPHA) THEN
+          SCALE = ALPHA / (ALPHAK + ALPHAIPF)
+          ALPHAK = ALPHAK * SCALE
+          ALPHAIPF = ALPHAIPF * SCALE
+        ENDIF
+        IF (dummy.LE.(ALPHAK/(1.0+ALPHA))) THEN
+          IC_type=1   ! K-shell
+        ELSEIF (dummy.LE.((ALPHAK + ALPHAIPF)/(1.0+ALPHA))) THEN
+          IC_type=3   ! IPF
         ELSE
-          IC_type=2
+          IC_type=2   ! non-K, non-IPF (other internal conversion)
         ENDIF
       ENDIF
       RETURN
@@ -1108,17 +1119,22 @@ integer,dimension(:,:,:,:),allocatable::ISDIS
       ENDIF
       dummy=RAN0(IRX)
       ALPHA=ALPH_TOT(EIN,SPIN,IPIN,EFI,SPFI,IPFI,DMIX2,NENT,ELENT,CONVT)
-      IF (dummy.GT.(ALPHA/(1+ALPHA))) THEN
-        IC_type=0
+      IF (dummy.GT.(ALPHA/(1.0+ALPHA))) THEN
+        IC_type=0   ! gamma emission
       ELSE
         ALPHAK=ALPH_TOT(EIN,SPIN,IPIN,EFI,SPFI,IPFI,DMIX2,NENK,ELENK,CONVK)
-        ALPHAIPF=ALPH_TOT(EIN,SPIN,IPIN,EFI,SPFI,IPFI,DMIX2,NEN_IPF,ELEN_IPF,CONV_IPF)+ALPHAK
-        IF (dummy.LE.(ALPHAK/(1+ALPHA))) THEN
-          IC_type=1
-        ELSEIF (dummy.LE.(ALPHAIPF/(1+ALPHA))) THEN
-          IC_type=3
+        ALPHAIPF = ALPH_TOT(EIN,SPIN,IPIN,EFI,SPFI,IPFI,DMIX2,NEN_IPF,ELEN_IPF,CONV_IPF)
+        IF((ALPHAK+ALPHAIPF).GT.ALPHA) THEN
+          SCALE = ALPHA / (ALPHAK + ALPHAIPF)
+          ALPHAK = ALPHAK * SCALE
+          ALPHAIPF = ALPHAIPF * SCALE
+        ENDIF
+        IF (dummy.LE.(ALPHAK/(1.0+ALPHA))) THEN
+          IC_type=1   ! K-shell
+        ELSEIF (dummy.LE.((ALPHAK + ALPHAIPF)/(1.0+ALPHA))) THEN
+          IC_type=3   ! IPF
         ELSE
-          IC_type=2
+          IC_type=2   ! non-K, non-IPF (other internal conversion)
         ENDIF
       ENDIF
       RETURN
@@ -1152,18 +1168,18 @@ integer,dimension(:,:,:,:),allocatable::ISDIS
 !     conversion
 !      IC_type !0 = gamma, 1 = K-shell, 2 = higher-shell, 3 = pair
       if (p_conv(deaux,i).gt.0.0) then
-         dummy=ran0(irx)
-         if (dummy.gt.p_conv(deaux,i)) then
-           IC_type=0
-         else
-           if (dummy.le.p_conv_K(deaux,i)) then
-             IC_type=1
-           elseif (dummy.le.p_conv_IPF(deaux,i)) then
-             IC_type=3
-           else
-             IC_type=2
-           endif  
-         endif
+        dummy=ran0(irx)
+        if (dummy.gt.p_conv(deaux,i)) then
+          IC_type=0  ! Gamma
+        elseif (dummy.le.p_conv_K(deaux,i)) then
+          IC_type=1  ! K-shell IC
+        elseif (dummy.le.p_conv_IPF(deaux,i)) then
+          IC_type=3  ! IPF
+        else
+          IC_type=2  ! Higher-shell IC
+        endif
+      else
+        IC_type=0  ! No conversion possible, default to gamma
       endif
       RETURN
 END SUBROUTINE ONESTEP

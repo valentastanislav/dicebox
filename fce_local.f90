@@ -229,17 +229,24 @@ REAL FUNCTION AICC(ETRA,TABEN,TABICC,MAEL,MUL,N)
 !     then the interpolation changes to extrapolation and difficulties may
 !     start ...
 !                                                    Version from 6-OCT-95
+!     updated on 21-MAY-2025 to avoid problems with "zeroes" (subthreshold for K- and pair-conversion)
 !
-real,dimension(1:100):: TABEN
-real,dimension(0:1,1:5,1:100):: TABICC
-integer:: MAEL,MUL,N
-INTEGER:: I,J,K
-      REAL*4 XX(4),YY(4),A(4),ETRA,ETRAPOM
+      real,dimension(1:100):: TABEN
+      real,dimension(0:1,1:5,1:100):: TABICC
+      integer:: MAEL,MUL,N
+      INTEGER:: I,J,K
+      REAL*4 XX(4),YY(4),A(4),ETRA
+      logical :: LOG_INTERPOLATE
 !
-      IF (ETRA.LT.TABEN(1)) ETRA=TABEN(1)
-      IF (ETRA.GT.TABEN(N)) ETRA=TABEN(N)
-      IF (ETRA.LE.TABEN(2)) THEN
-        K=0
+      IF (ETRA.LE.TABEN(1)) THEN
+        AICC=TABICC(MAEL,MUL,1)
+        RETURN
+      ELSEIF (ETRA.GE.TABEN(N)) THEN
+        AICC=TABICC(MAEL,MUL,N)
+        RETURN
+      ELSEIF (ETRA.LE.TABEN(2)) THEN
+        AICC=TABICC(MAEL,MUL,1)+(ETRA-TABEN(1))*(TABICC(MAEL,MUL,2)-TABICC(MAEL,MUL,1))/(TABEN(2)-TABEN(1))
+        RETURN
       ELSE
         IF (ETRA.LE.TABEN(N-1)) THEN
           DO I=3,N-1
@@ -253,26 +260,39 @@ INTEGER:: I,J,K
         ENDIF
       ENDIF
 !
-    1 etrapom=etra
-      etra=log(etra)
-      DO J=1,4
-         XX(J)=log(TABEN(K+J))
-         YY(J)=log(TABICC(MAEL,MUL,K+J))
-      ENDDO !J
-      AICC=0.
-      DO I=1,4
-         A(I)=YY(I)
-         DO J=1,4
-            IF (I.NE.J) A(I)=A(I)/(XX(J)-XX(I))
-         ENDDO !J
-         DO J=1,4
-            IF (I.NE.J) A(I)=A(I)*(XX(J)-ETRA)
-         ENDDO !J
-         AICC=AICC+A(I)
-      ENDDO !I
-!
-        aicc=exp(aicc)
-        etra=etrapom
+    1 LOG_INTERPOLATE = .TRUE.
+      do J = 1, 4
+        if (TABICC(MAEL, MUL, K + J) .LE. 1e7*tiny(TABICC)) then
+          LOG_INTERPOLATE = .FALSE.
+          exit
+        endif
+      enddo
+      IF(LOG_INTERPOLATE) THEN
+        DO J=1,4
+           XX(J)=log(TABEN(K+J))
+           YY(J)=log(TABICC(MAEL,MUL,K+J))
+        ENDDO !J
+        AICC=0.
+        DO I=1,4
+          A(I)=YY(I)
+          DO J=1,4
+            IF (I.NE.J) A(I)=A(I)/(XX(I)-XX(J))
+          ENDDO !J
+          DO J=1,4
+            IF (I.NE.J) A(I)=A(I)*(log(ETRA)-XX(J))
+          ENDDO !J
+          AICC=AICC+A(I)
+        ENDDO !I
+        AICC=exp(AICC)
+      ELSE
+      ! Fallback: linear interpolation in linear space using closest bracket
+        do I = K+1, K+3
+          if (ETRA .LE. TABEN(I+1)) then
+            AICC=TABICC(MAEL,MUL,I)+(ETRA-TABEN(I))*(TABICC(MAEL,MUL,I+1)-TABICC(MAEL,MUL,I))/(TABEN(I+1)-TABEN(I))
+            exit
+          endif
+        enddo
+      ENDIF
       RETURN
       END FUNCTION AICC
 !***********************************************************************
