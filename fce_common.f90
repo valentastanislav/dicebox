@@ -1,7 +1,7 @@
 !TODO gilbert cameron and spin distribution of initial states email jutta escher
 !TODO NOPTE1.EQ.65 -> 75, added scaling with PAR_E1(1)
 !TODO ETR deleted, replaced by PAR_E1(1) or PAR_M1(1) in relevant models
-!TODO added TCONST parameter, now in models 39,46,56,74,75,76,79
+!TODO added TCONST via PAR_E1(2) parameter, now in models 39,46,56,74,75,76,79
 !TODO deleted 78 as it was the 74
 !TODO check about the models 48,49
 module spolecne
@@ -13,7 +13,7 @@ real::                                factnrm,BN,AMASS,DELTA,PAIRING,FJ
 real::                                ASHELL09,DEL09,TEMPER09,EZERO09,PAIRING09,SIG_CUSTOM,EZERO,TEMPER,DEL,ASHELL
 real::                                TKpair, TKeshell, TKematch ! Kawano's stuff
 real::                                DENLO,DENHI,DENPA,DENPB,DENPC,DENPD,ZNUM,DENPPC,DENPA0,DENPA1,DENPA2
-real::                                FERMC,TCONST,PAIR_PSF,DEG,DMG,QEL,EK0
+real::                                FERMC,PAIR_PSF,DEG,DMG,QEL,EK0
 real::                                EGZERO,DIPSLP,DIPZER,EFEC_E
 integer, dimension(1:199)::           denum,ilowip,LVL_CLASS !TODO maybe make these allocatable
 integer, dimension(0:49,0:1)::        NDIS,NEIGENVAL
@@ -851,7 +851,7 @@ real::            EGAM,EINI
           SGAMMA=PIH*Q*EGAM**3
           RETURN
         ELSEIF (NOPTE1.EQ.56) THEN  !GLO with constant temperature and low-energy enhancement (for Artemis)
-          TFIN=TCONST
+          TFIN=PAR_E1(2)
           Q=SIG(1)*EXP(-W0(1)*(EGAM-ER(1)))
           DO I=2,NGIGE
             W=W0(I)*(EGAM**2+PI42*TFIN**2)/ER(I)**2
@@ -862,7 +862,7 @@ real::            EGAM,EINI
           SGAMMA=PIH*Q*EGAM**3
           RETURN
         ELSEIF (NOPTE1.EQ.58) THEN  ! GLO with constant temperature and pygmy resonance(s)
-          TFIN=TCONST
+          TFIN=PAR_E1(2)
           Q=0.
           DO I=1,NLOWLOR
             QQ=SIG(I)*(EGAM*W0(I)**2/((EGAM**2-ER(I)**2)**2+(EGAM*W0(I))**2))
@@ -1037,7 +1037,7 @@ real::            EGAM,EINI
           RETURN
 ! TODO change the PAR_E1(1) - talk to MK about the logic of this
         ELSEIF (NOPTE1.EQ.73) THEN  ! EGLO(3) with constant T
-          TFIN=TCONST
+          TFIN=PAR_E1(2)
           Q=0.
           DO I=1,NGIGE
             WPHEN=EK0+(1.-EK0)*(EGAM-EGZERO)/(ER(I)-EGZERO)
@@ -1051,7 +1051,7 @@ real::            EGAM,EINI
           SFCEE1=SGAMMA
           RETURN
         ELSEIF (NOPTE1.EQ.74) THEN   ! KMF with constant T
-          TFIN=TCONST        
+          TFIN=PAR_E1(2)
           Q=0.
           DO I=1,NGIGE
            W=W0(I)*(EGAM**2+PI42*TFIN**2)/ER(I)**2
@@ -1061,7 +1061,7 @@ real::            EGAM,EINI
           SGAMMA=PAR_E1(1)*PIH*Q*EGAM**3    
         RETURN
         ELSEIF (NOPTE1.EQ.75) THEN  !GLO with constant T
-          TFIN=TCONST
+          TFIN=PAR_E1(2)
           Q=0.
           DO I=1,NGIGE
             W=W0(I)*(EGAM**2+PI42*TFIN**2)/ER(I)**2
@@ -1072,7 +1072,7 @@ real::            EGAM,EINI
           SGAMMA=PAR_E1(1)*PIH*Q*EGAM**3
           RETURN
         ELSEIF (NOPTE1.EQ.76) THEN  ! MGLO(6) with constant T
-          TFIN=TCONST        
+          TFIN=PAR_E1(2)
           Q=0.
           DO I=1,NGIGE
             WPHEN=EK0+(1.-EK0)*(EGAM-EGZERO)/(ER(I)-EGZERO)
@@ -1084,7 +1084,7 @@ real::            EGAM,EINI
           SGAMMA=PAR_E1(1)*PIH*Q*EGAM**3
           RETURN
         ELSEIF (NOPTE1.EQ.77) THEN  ! MGLO(6) with constant T and Lorentzian LLR pygmy
-          TFIN=TCONST
+          TFIN=PAR_E1(2)
           Q=0.
           DO I=1,NLOWLOR
             QQ=SIG(I)*(EGAM*W0(I)**2/((EGAM**2-ER(I)**2)**2+(EGAM*W0(I))**2))
@@ -1118,7 +1118,7 @@ real::            EGAM,EINI
           RETURN
         ELSEIF (NOPTE1.EQ.39) THEN   ! Pure Fermi liquid theory (Kadmenskij)
 !                                      suppressed for small EGAM - const. T !!!
-          TFIN=TCONST
+          TFIN=PAR_E1(2)
           Q=0.
           DO I=1,NGIGE
             W=W0(I)*(EGAM**2+PI42*TFIN**2)/ER(I)**2
@@ -1567,14 +1567,14 @@ real::            EGAM,EINI
           SGAMMA=PAR_E1(1)*PIH*Q*EGAM**3    
         RETURN
         ELSEIF (NOPTE1.EQ.46) THEN   !!!!!! Oslo KMF; including softpole; TODO OUTDATED
-          TFIN=TCONST       !Temperature independent PSF  
+          TFIN=PAR_E1(2)       !Temperature independent PSF  
           Q=0.
           DO I=1,NGIGE
            W=W0(I)*(EGAM**2+PI42*TFIN**2)/ER(I)**2
            QQ=FERMC*SIG(I)*W0(I)*W*ER(I)/(EGAM**2-ER(I)**2)**2
            Q=Q+QQ
           ENDDO
-          Q=Q+PAR_E1(2)/(EGAM**PAR_E1(3))
+          Q=Q+PAR_E1(3)/(EGAM**PAR_E1(4))
           SGAMMA=PAR_E1(1)*PIH*Q*EGAM**3    
         RETURN
         ELSEIF (NOPTE1.EQ.47) THEN   !!!!!! Oslo KMF; including softpole
@@ -1637,7 +1637,7 @@ real::            EGAM,EINI
           SGAMMA=PIH*Q*EGAM**3    
         RETURN
         ELSEIF (NOPTE1.EQ.79) THEN   !!!!!! Voinov Mo LLR; KMF with constant T and 1st lorentzian resonance, equal to 55 with diferently defined parameters on input (uses kappa)
-          TFIN=TCONST        
+          TFIN=PAR_E1(2)        
           Q=0.
           Q=SIG(1)*(EGAM*W0(1)**2/((EGAM**2-ER(1)**2)**2+(EGAM*W0(1))**2))/PAR_E1(1)  ! Lorentzian LLR
           DO I=2,NGIGE
@@ -1648,7 +1648,7 @@ real::            EGAM,EINI
           SGAMMA=PAR_E1(1)*PIH*Q*EGAM**3    
         RETURN
         ELSEIF (NOPTE1.EQ.83) THEN  ! EGLO(3) with constant T + Lorentzian pygmy (Oslo - actinides)
-          TFIN=TCONST
+          TFIN=PAR_E1(2)
           Q=SIG(1)*(EGAM*W0(1)**2/((EGAM**2-ER(1)**2)**2+(EGAM*W0(1))**2)) ! pygmy
           DO I=2,NGIGE
             WPHEN=EK0+(1.-EK0)*(EGAM-EGZERO)/(ER(I)-EGZERO)

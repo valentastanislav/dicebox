@@ -29,42 +29,39 @@ contains
 SUBROUTINE READ_EV(NAME,lopopgs,KONTROLMATRIX,depop,depop_err)
 !     reading of the input file
 INTEGER,PARAMETER::     MAXJC  = 49
-CHARACTER(80)::         TITLE1,TITLE2,TITLE3
 character(80)::         NAME
 logical::               lopopgs
 integer,dimension(:,:),allocatable:: KONTROLMATRIX
 real,dimension(:),allocatable::   depop,depop_err
-INTEGER::               I,J,K,NMU,ipfi,ipar,control,J_range,tabJ
+INTEGER::               I,J,K,NMU,ipfi,ipar,control,J_range,tabJ,idummy
 REAL::                  enrg,spfi
 REAL::                  enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,FSPAC,corrAlpha,corrDelta
       OPEN (UNIT=5,FILE=NAME,STATUS='OLD')
 !     User's alphanumeric titles:
-      READ (5,100) TITLE1
-      READ (5,100) TITLE2
-      READ (5,100) TITLE3
-  100 FORMAT (A80)
+      READ (5,*) 
+      READ (5,*) 
+      READ (5,*) 
+      write(*,*) 'about to read input from ',NAME
 !     The regime of run:
+      READ (5,*)
+      READ (5,*) idummy, IPRIM
       READ (5,*)
       READ (5,*) ISWWR,ISWBN,ISWEL,ISWSP,ISWPA,ISWIC,ISWMX,ISWWI,ISWLS
       READ (5,*)
-      Read (5,*) Nreal, NEVENTS, NSUB
-      if (.not.allocated(KONTROLMATRIX)) then
-       allocate(KONTROLMATRIX(1:4,1:NREAL))
-      endif 
+      READ (5,*) NBIN,(PAR_E1(I),I=1,4)
       READ (5,*)
-      READ (5,*) NBIN,(KONTROLMATRIX(I,1),I=1,4)
+      READ (5,*) NOPTFL,NOPTE1,NOPTM1,NOPTE2,NOPTDE,LMODE,LDENP,LDSTAG
       READ (5,*)
-      READ (5,*) IPRIM,NOPTFL,NOPTE1,NOPTM1,NOPTE2,NOPTDE,LMODE,LDENP,LDSTAG
-      READ (5,*)
-      READ (5,*) N_MSC_FS, BIN_WIDTH
-      if (N_MSC_FS.GE.1) then
-      allocate (MSC_FS(1:N_MSC_FS))
-      DO I=1,N_MSC_FS
-        READ (5,*) MSC_FS(I)
-      ENDDO
-      endif
+      READ (5,*) Nreal, NEVENTS, NSUB
       MIN_MULTIPLICITA=1
       MAX_MULTIPLICITA=7
+      if (.not.allocated(KONTROLMATRIX)) then
+       allocate(KONTROLMATRIX(1:4,1:NREAL))
+      endif
+      DO I=1,4
+        KONTROLMATRIX(I,1)=PAR_E1(I)
+      ENDDO
+
 !
 !     Giant Resonaces:
 !
@@ -94,13 +91,11 @@ REAL::                  enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,FSPAC,corrA
 !
 !     Other data needed for photon strength:
       READ (5,*)
-      READ (5,*) DEG,DMG,QEL
+      READ (5,*) DEG, DMG, QEL
       READ (5,*)
-      READ (5,*) FERMC, TCONST, PAIR_PSF
+      READ (5,*) FERMC, EK0, EGZERO, PAIR_PSF
       READ (5,*)
-      READ (5,*) EK0,EGZERO
-      READ (5,*)
-      READ (5,*) (PAR_E1(I),I=1,3) ! DIPELO,DIPEHI,DIPSUP
+      READ (5,*) (PAR_E1(I),I=1,3) ! was DIPELO,DIPEHI,DIPSUP
         DIPSLP=(1.0-PAR_E1(3))/(PAR_E1(2)-PAR_E1(1))
         DIPZER=1.0-DIPSLP*PAR_E1(2)
       READ (5,*)
@@ -109,7 +104,7 @@ REAL::                  enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,FSPAC,corrA
 !     Data needed for level density formulas:
 !
       READ (5,*)
-      READ (5,*) EZERO,DEL,TEMPER,ASHELL,AMASS,ZNUM,PAIRING
+      READ (5,*) ASHELL,DEL,TEMPER,EZERO,AMASS,ZNUM,PAIRING
       READ (5,*)
       READ (5,*) ASHELL09,DEL09,TEMPER09,EZERO09,PAIRING09,SIG_CUSTOM
       IF ((NOPTDE.EQ.8).OR.(NOPTDE.EQ.9)) THEN
@@ -488,7 +483,7 @@ REAL::                  enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,FSPAC,corrA
       RETURN
 END SUBROUTINE READ_EV
 !***********************************************************************
-SUBROUTINE GERMS(IR,NTOTAL,NDDD,IRCONc,IRCON)     !should be OK
+SUBROUTINE GERMS(IR,NTOTAL,NDDD,NLINc,IRCONc,IRCON)     !should be OK
 !
 !     This subroutine generates a random-generator random seed for
 !     each individual level. The seeds obtained are stored in IRCON(K).
@@ -501,9 +496,8 @@ SUBROUTINE GERMS(IR,NTOTAL,NDDD,IRCONc,IRCON)     !should be OK
 INTEGER::                             I,IG,K,N,NOLD,NDIF,KAUX,JAUX
 INTEGER,dimension(:),allocatable::    IAUX
 REAL::                                dummy
-integer::                             IR,NTOTAL,NDDD
+integer::                             IR,NTOTAL,NDDD,NLINc
 integer,dimension(:),allocatable::    IRCONc,IRCON
-!globalni NLINc
       if (allocated(IRCON)) then
         deallocate(IRCON)
       endif  

@@ -55,7 +55,7 @@ real:: start, finish
 !$OMP IPRIM,NOPTFL,NOPTE1,NOPTM1,NOPTE2,NOPTDE,LMODE,LDENP,LDSTAG,&
 !$OMP NREAL, NEVENTS, NUMLEV, NSUB,&
 !$OMP NGIGE,NLOWLOR,ER,W0,SIG,NGIGM,ERM,WM0,SIGM,NGIGE2,ERE,WE0,SIGE,&
-!$OMP DEG,DMG,QEL,FERMC,TCONST,PAIR_PSF,EK0,EGZERO,&
+!$OMP DEG,DMG,QEL,FERMC,PAIR_PSF,EK0,EGZERO,&
 !$OMP PAR_E1,PAR_M1,DIPSLP,DIPZER,&
 !$OMP EZERO,DEL,TEMPER,ASHELL,AMASS,ZNUM,PAIRING,&
 !$OMP ASHELL09,DEL09,TEMPER09,EZERO09,PAIRING09,&
@@ -165,7 +165,7 @@ real:: start, finish
          CALL WRITELEVELS(NUC,NBIN,LEVCON)
          write(*,*) 'levels written for NREAL #',NUC
        ENDIF ! ISWLS
-       CALL GERMS(IR2,NTOTAL,NDDD,IRCONc,IRCON)
+       CALL GERMS(IR2,NTOTAL,NDDD,NLINc,IRCONc,IRCON)
        write(*,*) 'precursors assigned for levels in NREAL #',NUC
 !      Intensities of low-lying transitions can fluctuate
        CALL READ_INT(sall,STDISa,IFLAG,U,IR2)
@@ -183,7 +183,7 @@ real:: start, finish
         if (.not.allocated(ISDIS)) then
          allocate(ISDIS(0:NLINc,1:20,0:ISUBSC(max_spin),0:1))
         endif 
-        DO ilinc=0,2
+        DO ilinc=0,NLINc
          DO ip=0,1
           DO is=-2,2
             DO i=0,20
