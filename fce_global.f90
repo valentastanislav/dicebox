@@ -3,6 +3,7 @@
 
 module vsechno
 use lokalni_fce
+use iccs
 use spolecne
 implicit none
 
@@ -14,15 +15,14 @@ real::                                eall,EIN,EFI,ecrit,xrayk,xrayl,max_spin,SU
                                       D0,TRGT_SPIN
 
 integer, dimension(0:49,0:1)::        levdis
-integer, dimension(1:100,0:49,0:1)::   dekod
+integer, dimension(1:100,0:49,0:1)::  dekod
 integer,dimension(:,:),allocatable::  isbspin
 
 real,    dimension(:),allocatable::   MSC_FS
 real,    dimension(1:2)::             CAPFR
-real,    dimension(1:100)::           elent,elenk,ELEN_IPF
-real,    dimension(1:199,0:20)::       p_conv,p_conv_K,p_conv_IPF !TODO somehow smart determine the maximum number of decays in DIS and make these allocatable
-real,    dimension(1:199,1:20)::       deltx
-real,    dimension(0:1,1:5,1:100)::    CONVt,CONVk,CONV_IPF
+real(4),dimension(:),allocatable::    elent,elenk,ELEN_IPF
+real,    dimension(:,:),allocatable:: p_conv, p_conv_K, p_conv_IPF, deltx
+real(4),dimension(:,:,:),allocatable:: CONVt,CONVk,CONV_IPF
 
 contains
 !***********************************************************************
@@ -36,6 +36,7 @@ real,dimension(:),allocatable::   depop,depop_err
 INTEGER::               I,J,K,NMU,ipfi,ipar,control,J_range,tabJ,idummy
 REAL::                  enrg,spfi
 REAL::                  enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,FSPAC,corrAlpha,corrDelta
+      N_MSC_FS=0
       OPEN (UNIT=5,FILE=NAME,STATUS='OLD')
 !     User's alphanumeric titles:
       READ (5,*) 
@@ -120,7 +121,7 @@ REAL::                  enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,FSPAC,corrA
       READ (5,*) DENLO,DENHI,DENPA,DENPB,DENPC,DENPD
       IF (LDSTAG.NE.0) THEN
         IF ((MOD(INT(AMASS+0.25),2).NE.0).OR.(MOD(INT(ZNUM+0.25),2).NE.0)) THEN
-            WRITE(*,*) 'Are You sure You want to use staggering in isotope which is not even-even?!'
+            WRITE(*,*) 'Are You sure You want to use staggering in isotope which is not even-even?'
         ENDIF
         WRITE(*,*) 'Effect of staggering linearly decrasing from energy of ',DENLO,' MeV to ',DENHI,' MeV'
       ENDIF
@@ -148,54 +149,36 @@ REAL::                  enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,FSPAC,corrA
 !             CONVT(I,M,K)        -- total ICC ... (as the CONVK)
 !             ELENT(K),ELENK(K)   -- K-th value of electron energy
 !
-      READ (5,*)
-      READ (5,*) xrayk,xrayl
-      READ (5,*) NMU
-      READ (5,*) NENT
-      READ (5,*) (ELENT(K),K=1,NENT)
-      READ (5,*) (((CONVT(I,J,K),I=0,1),J=1,NMU),K=1,NENT)
-!     Let's handle alpha_K now
-!     number of energies
-      READ (5,*) NENK
-!     add 1 energy to the beginning (corresponding to below threshold) and put zeroes to the coefficients
-      DO K=1,1
-        write(*,*) 'adding energy ',ELENT(NENT-NENK-1+K),' with ICC ',CONVK(0,1,K)
-        ELENK(K)=ELENT(NENT-NENK-1+K)
-        DO I=0,1
-          DO J=1,NMU
-            CONVK(I,J,K)=1e6*tiny(CONVK(I,J,K))
-          ENDDO
-        ENDDO
-      ENDDO
-!     now read the rest - input itself
-      READ (5,*) (ELENK(K),K=1+1,NENK+1)
-      READ (5,*) (((CONVK(I,J,K),I=0,1),J=1,NMU),K=1+1,NENK+1)
-!     now tell the code we've added 1 energy
-      NENK=NENK+1
+      xrayk = 1e-6*f_table(1, NINT(ZNUM))
+      xrayl = 1e-6*f_table(2, NINT(ZNUM))
+      write(*,*) xrayk, xrayl
+      CALL InitICCs()
+      NENT = AllTables(NINT(ZNUM))%icc_number
+      allocate(ELENT(1:NENT))
+      ELENT = AllTables(NINT(ZNUM))%icc_energies
+      allocate(CONVT(0:1,1:5,1:NENT))
+      CONVT = AllTables(NINT(ZNUM))%icc_values
 
-!     Let's handle alpha_IPF now
-!     number of energies
-      READ (5,*) NEN_IPF
-!     add 1 energies to the beginning (corresponding to below threshold) and put zeroes to the coefficients
-      DO K=1,1
-        ELEN_IPF(K)=ELENT(NENT-NEN_IPF-1+K)
-        DO I=0,1
-          DO J=1,NMU
-            CONV_IPF(I,J,K)=1e6*tiny(CONV_IPF(I,J,K)) !assigns very small positive number close to zero
-          ENDDO
-        ENDDO
-      ENDDO
-!     now read the rest - input itself
-      READ (5,*) (ELEN_IPF(K),K=1+1,NEN_IPF+1)
-      READ (5,*) (((CONV_IPF(I,J,K),I=0,1),J=1,3),K=1+1,NEN_IPF+1)
-!     now tell the code we've added 1 energy
-      NEN_IPF=NEN_IPF+1
+      NENK = KTables(NINT(ZNUM))%icc_number
+      allocate(ELENK(1:NENK))
+      ELENK = KTables(NINT(ZNUM))%icc_energies
+      allocate(convk(0:1,1:5,1:NENK))
+      CONVK = KTables(NINT(ZNUM))%icc_values
+
+      NEN_IPF = IPFTables(NINT(ZNUM))%icc_number
+      allocate(ELEN_IPF(1:NEN_IPF))
+      ELEN_IPF = IPFTables(NINT(ZNUM))%icc_energies
+      allocate(CONV_IPF(0:1,1:3,1:NEN_IPF))
+      CONV_IPF = IPFTables(NINT(ZNUM))%icc_values
 !
 !     Data related to the discrete levels (J, pi, Eexc, primary intensities
 !     and branchings):
 !
       READ (5,*)
       READ (5,*) EALL,ECRIT ! od ground state do EALL zname "uplne" vsechno o hladinach, mezi EALL a ECRIT "jen" energie, spin a paritu, a statisticky (do)generujeme jejich rozpad
+      if ( EALL.GT.ECRIT ) then
+        STOP "E_{all} can not be higher than E_{crit}!"
+      end if
       read (5,*)
       LOpopGS=.false.
       DO J=0,MAXJC
@@ -210,10 +193,10 @@ REAL::                  enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,FSPAC,corrA
       READ (5,*) numlev !TODO zde bude druha promenna udavajici pocet hladin mezi EALL a ECRIT
       write(*,*) 'going to read ', numlev,' low-lying levels'
       if (.not.allocated(ityp)) then
-        allocate (ityp(1:numlev,1:2))
+        allocate (ityp(1:numlev, 1:2))
       endif  
       if (.not.allocated(isbspin)) then
-        allocate (isbspin(1:numlev,1:2))
+        allocate (isbspin(1:numlev, 1:2))
       endif
       if (.not.allocated(depop)) then
         allocate (depop(1:numlev))
@@ -221,7 +204,61 @@ REAL::                  enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,FSPAC,corrA
       if (.not.allocated(depop_err)) then
         allocate (depop_err(1:numlev))
       endif
-      DO i=1,199
+      if (.not.allocated(denum)) then
+        allocate (denum(1:numlev))
+      endif
+      if (.not.allocated(delev)) then
+        allocate (delev(1:numlev, 1:20))
+      endif
+      if (.not.allocated(deparity)) then
+        allocate (deparity(1:numlev, 1:20))
+      endif
+      if (.not.allocated(ilowip)) then
+        allocate (ilowip(1:numlev))
+      endif
+      if (.not.allocated(LVL_CLASS)) then
+        allocate (LVL_CLASS(1:numlev))
+      endif
+      if (.not.allocated(LVL_ENERGY)) then
+        allocate (LVL_ENERGY(1:numlev))
+      endif
+      if (.not.allocated(prim)) then
+        allocate (prim(1:numlev))
+      endif
+      if (.not.allocated(errprim)) then
+        allocate (errprim(1:numlev))
+      endif
+      if (.not.allocated(elowlev)) then
+        allocate (elowlev(1:numlev))
+      endif
+      if (.not.allocated(elowsp)) then
+        allocate (elowsp(1:numlev))
+      endif
+      if (.not.allocated(sal)) then
+        allocate (sal(1:numlev, 0:20))
+      endif
+      if (.not.allocated(errsal)) then
+        allocate (errsal(1:numlev, 0:20))
+      endif
+      if (.not.allocated(alpha)) then
+        allocate (alpha(1:numlev, 0:20))
+      endif
+      if (.not.allocated(despin)) then
+        allocate (despin(1:numlev, 1:20))
+      endif
+      if (.not.allocated(deltx)) then
+        allocate (deltx(1:numlev, 1:20))
+      endif
+      if (.not.allocated(p_conv)) then
+        allocate (p_conv(1:numlev, 0:20))
+      endif
+      if (.not.allocated(p_conv_K)) then
+        allocate (p_conv_K(1:numlev, 0:20))
+      endif
+      if (.not.allocated(p_conv_IPF)) then
+        allocate (p_conv_IPF(1:numlev, 0:20))
+      endif
+      DO i=1,numlev
         prim(i)=0.0
       ENDDO
       DO i=1,numlev
@@ -327,6 +364,13 @@ REAL::                  enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,FSPAC,corrA
         OPEN (UNIT=5,FILE=NAME,STATUS='OLD')
         READ(5,*) 
         READ(5,*) NLD, J_range
+        if (.not.allocated(TABENLD)) then
+          allocate (TABENLD(0:NLD))
+        endif
+        if (.not.allocated(TABLD)) then
+          allocate (TABLD(0:NLD,0:MAXJC,0:1))
+        endif
+
         READ(5,*) 
         DO I = NLD, 1, -1
           READ(5,*) TABENLD(I),DUMMY,(TABLD(I,J,0),J=0,J_range) 
@@ -355,6 +399,12 @@ REAL::                  enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,FSPAC,corrA
         OPEN (UNIT=5,FILE=NAME,STATUS='OLD')
         READ(5,*) 
         READ(5,*) NLD, tabJ, SPACRES, spfi, ipfi, corrAlpha, corrDelta
+        if (.not.allocated(TABENLD)) then
+          allocate (TABENLD(0:NLD))
+        endif
+        if (.not.allocated(TABLD)) then
+          allocate (TABLD(0:NLD,0:MAXJC,0:1))
+        endif
         READ(5,*) 
         DO I = 1, NLD
           READ(5,*) TABENLD(I),DUMMY,DUMMY,DUMMY,DUMMY,(TABLD(I,J,0),J=0,tabJ)
@@ -1602,7 +1652,7 @@ real::                            RADAVG,RADVAR,RADFLUCT
       WRITE(9,*) 'Capt.state tot.rad.width (MeV): '
       WRITE(9,*) 'global average +/- overall fluctuation (suprareal , realization)'
       WRITE(9,197) RADAVG,SQRT(RADVAR+RADFLUCT),SQRT(RADVAR),SQRT(RADFLUCT)
-  197 format(E13.6,' +/-',E13.6,' (',E13.6,' , ',E13.6,') ')   
+  197 format(E13.6,' +/-',E13.6,' (',E13.6,' , ',E13.6,') ')
       WRITE(9,*)
       WRITE(9,*) 'Number of cascades terminating at isomeric state: ',NISOM
       WRITE(9,*)

@@ -1,8 +1,8 @@
 !TODO gilbert cameron and spin distribution of initial states email jutta escher
 !TODO NOPTE1.EQ.65 -> 75, added scaling with PAR_E1(1)
-!TODO ETR deleted, replaced by PAR_E1(1) or PAR_M1(1) in relevant models
-!TODO added TCONST via PAR_E1(2) parameter, now in models 39,46,56,74,75,76,79
-!TODO deleted 78 as it was the 74
+!NOTE ETR deleted, replaced by PAR_E1(1) or PAR_M1(1) in relevant models
+!NOTE added TCONST via PAR_E1(2) parameter, now in models 39,46,56,74,75,76,79
+!NOTE deleted model 78 as it was the 74
 !TODO check about the models 48,49
 module spolecne
 use lokalni_fce
@@ -15,21 +15,19 @@ real::                                TKpair, TKeshell, TKematch ! Kawano's stuf
 real::                                DENLO,DENHI,DENPA,DENPB,DENPC,DENPD,ZNUM,DENPPC,DENPA0,DENPA1,DENPA2
 real::                                FERMC,PAIR_PSF,DEG,DMG,QEL,EK0
 real::                                EGZERO,DIPSLP,DIPZER,EFEC_E
-integer, dimension(1:199)::           denum,ilowip,LVL_CLASS !TODO maybe make these allocatable
+integer, dimension(:),allocatable::   denum, ilowip, LVL_CLASS
 integer, dimension(0:49,0:1)::        NDIS,NEIGENVAL
-integer, dimension(1:199,1:20)::      delev,deparity
-integer,dimension(:,:),allocatable::  ityp
+integer, dimension(:,:),allocatable:: delev,deparity
+integer, dimension(:,:),allocatable:: ityp
 
 real,    dimension(1:2)::             spinc
 real,    dimension(1:4)::             PAR_E1,PAR_M1
 real,    dimension(1:5)::             ER,SIG,W0,ERM,SIGM,WM0,ERE,SIGE,WE0
-real,    dimension(1:199)::           LVL_ENERGY,prim,errprim,elowlev,elowsp !TODO maybe make these allocatable
-real,    dimension(0:330)::           TABENLD !TODO make this allocatable
-real,    dimension(1:199,0:20)::      sal,errsal,alpha !TODO somehow smart determine the maximum number of decays in DIS and make these allocatable
+real,    dimension(:),allocatable::   LVL_ENERGY,prim,errprim,elowlev,elowsp, TABENLD
+real,    dimension(:,:),allocatable:: sal, errsal, alpha, despin
+real,   dimension(:,:,:),allocatable::TABLD
 real,    dimension(0:24,0:20)::       F4
-real,    dimension(1:199,1:20)::      despin
 real,    dimension(1:100,0:49,0:1)::  ENDIS
-real,    dimension(0:330,0:49,0:1)::  TABLD !TODO make this allocatable
 integer, dimension(1:3)::             NPSF
 real,    dimension(1:3,0:400)::       TABENPSF,TABPSF
 real,    dimension(0:1000,0:49,0:1):: EIGENVAL
@@ -890,7 +888,7 @@ real::            EGAM,EINI
           RETURN
         ELSEIF (NOPTE1.EQ.7) THEN   ! SMLO
           IF (EGAM.LE.EINI) THEN
-            TFIN=SQRT((EINI-EGAM)/AMASS*10.0)
+            TFIN=SQRT(10.0*(EINI-EGAM)/AMASS)
           ELSE
             TFIN=0.0
           ENDIF

@@ -188,8 +188,8 @@ REAL FUNCTION ALPH_TOT (EI,SPI,IPI,EF,SPF,IPF,DMISQ,NEN,ELEN,CONV)
 !           MUL1    - the next contributing multipolarity
 !                     (3 in this case)
 !
-real,dimension(1:100):: ELEN
-real,dimension(0:1,1:5,1:100):: CONV
+real(4),dimension(:),allocatable:: ELEN
+real(4),dimension(:,:,:),allocatable:: CONV
       INTEGER*4 MUL0,MUL1,IPI,IPF,NEN,IAUX,MAEL0,MAEL1
       REAL*4    EI,SPI,EF,SPF,DMISQ,EG,CT0,CT1
 !
@@ -231,8 +231,8 @@ REAL FUNCTION AICC(ETRA,TABEN,TABICC,MAEL,MUL,N)
 !                                                    Version from 6-OCT-95
 !     updated on 21-MAY-2025 to avoid problems with "zeroes" (subthreshold for K- and pair-conversion)
 !
-      real,dimension(1:100):: TABEN
-      real,dimension(0:1,1:5,1:100):: TABICC
+      real(4),dimension(:),allocatable:: TABEN
+      real(4),dimension(:,:,:),allocatable:: TABICC
       integer:: MAEL,MUL,N
       INTEGER:: I,J,K
       REAL*4 XX(4),YY(4),A(4),ETRA

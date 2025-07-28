@@ -2,6 +2,7 @@
 PROGRAM DICE_EVENT
 use omp_lib
 use lokalni_fce
+use iccs
 use spolecne
 use vsechno
 !
