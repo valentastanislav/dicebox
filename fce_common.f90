@@ -1985,7 +1985,7 @@ REAL FUNCTION TERM(EEXC)
 real::            EEXC
       EFEC_E=EEXC-PAIR_PSF
       IF (EFEC_E.LT.0.) EFEC_E=0.
-      TERM=SQRT((EFEC_E)/ASHELL) ! TERM=SQRT((MAX(0.,EEXC-PAIR_PSF))/ASHELL)        
+      TERM=SQRT((EFEC_E)/ASHELL) ! TERM=SQRT((MAX(0.,EEXC-PAIR_PSF))/ASHELL)
       RETURN
       END FUNCTION TERM
 !***********************************************************************
