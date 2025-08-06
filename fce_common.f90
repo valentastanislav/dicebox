@@ -2460,18 +2460,19 @@ INTEGER FUNCTION NPOISS(IR,AM,IFLAG,U)
 !
       INTEGER*4 IR,IFLAG
       REAL*4    U,AM,Q
-!
-      IF (AM.LE.50.) THEN
-        Q=1.
-        NPOISS=0
-      2 Q=Q*RAN0(IR)
-        IF (Q.LT.EXP(-AM)) RETURN
-        NPOISS=NPOISS+1
-        GOTO 2
-      ENDIF
-      NPOISS=INT(AM+SQRT(AM)*GAUSS(IR,U,IFLAG))
+      IF (AM <= 50.) THEN
+        Q = 1.0
+        NPOISS = 0
+        DO
+          Q = Q * RAN0(IR)
+          IF (Q < EXP(-AM)) EXIT
+          NPOISS = NPOISS + 1
+        END DO
+      ELSE
+        NPOISS = INT(AM + SQRT(AM) * GAUSS(IR,U,IFLAG))
+      END IF
       RETURN
-      END FUNCTION NPOISS
+END FUNCTION NPOISS
 !***********************************************************************
 REAL FUNCTION GAUSS(IR,U,IFLAG)
 !     Normally distributed random numbers with

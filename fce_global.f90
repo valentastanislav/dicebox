@@ -656,7 +656,7 @@ integer,dimension(:),allocatable::    IRCONc,IRCON
 integer,dimension(:,:,:),allocatable::LEVCON
 integer,dimension(:,:,:,:),allocatable::ISDIS
 INTEGER::                             IPFI,ISPFI,ISP,IP,IS,I,NLEV,ISEED,ISEEDGS,ISEEDORIG,ISBS,IT,IT1,IT2,ITT,IL,NL,ICOR
-REAL::                                SPFI,Q,SPAC,SP,EG,Z,GSQ,G,CLEB,alpha,DMIX2
+REAL::                                SPFI,Q,SPACING_INVERSE,SP,EG,Z,GSQ,G,CLEB,alpha,DMIX2
 REAL,dimension(1:2)::                 SIMPL,GG
 !globalni NOPTFL,DELTA,corri,re2res,im2res,NDIS,ENDIS,BN,NBIN
 !
@@ -675,8 +675,8 @@ REAL,dimension(1:2)::                 SIMPL,GG
       ELSE
         EIN=EFI
       ENDIF !end IF (IREGI.EQ.0) THEN
-      SPAC=1./DENSITY(EIN,SPIN,IPIN)
-      IF (SPAC.LE.0.0) SPAC=0.0000001  !nikdy byt nemusi, 0.1eV
+      SPACING_INVERSE = DENSITY(EIN,SPIN,IPIN) ! below we check for extremely high densities, later we check for zero
+      IF (SPACING_INVERSE.GT.1e7) SPACING_INVERSE=1e7 ! corresponds to spacing of 0.1eV
       TOTCON(MODE)=0.D+0
       TOTDIS(MODE)=0.
 !
@@ -778,8 +778,8 @@ REAL,dimension(1:2)::                 SIMPL,GG
        ENDIF !IF (NOPTFL.LT.1)
 !
 !  fix equivalent to NL.EQ.0 cause of construction of Z
-       IF (DENSITY(EIN,SPIN,IPIN).GT.0.0) THEN
-         STCON(MODE,I,ISBS,IPFI)=STCON(MODE,I-1,ISBS,IPFI)+DBLE(Z*SPAC)
+       IF (SPACING_INVERSE.GT.0.0) THEN
+         STCON(MODE,I,ISBS,IPFI)=STCON(MODE,I-1,ISBS,IPFI)+DBLE(Z/SPACING_INVERSE)
        ELSE
          STCON(MODE,I,ISBS,IPFI)=STCON(MODE,I-1,ISBS,IPFI)
        ENDIF
@@ -874,10 +874,10 @@ REAL,dimension(1:2)::                 SIMPL,GG
 !         GE2=GE2+Z*SIMPL(2)/(SIMPL(1)+SIMPL(2))
 !       ENDIF
 !
-       IF (DENSITY(EIN,SPIN,IPIN).GT.0.0) THEN
+       IF (SPACING_INVERSE.GT.0.0) THEN
 !         WRITE(*,*) MODE,I,ISBS,IPFI,STDIS(MODE,I-1,ISBS,IPFI)
 !         write(*,*) 'stdis',stdis(mode,0,isbs,ipfi)
-         STDIS(MODE,I,ISBS,IPFI)=STDIS(MODE,I-1,ISBS,IPFI)+Z*SPAC
+         STDIS(MODE,I,ISBS,IPFI)=STDIS(MODE,I-1,ISBS,IPFI)+Z/SPACING_INVERSE
        ELSE
          STDIS(MODE,I,ISBS,IPFI)=STDIS(MODE,I-1,ISBS,IPFI)
        ENDIF
@@ -899,8 +899,8 @@ SUBROUTINE ONESTEP(MODE,IPIN,SPIN,IBIN,ILIN,TOTCON,STCON,GACON,ISCON,TOTDIS,STDI
 SPFI,IBFI,ILFI,DMIX2,SIGN,IR,IRX,LEVCON,sall,U,IFLAG,EIN,EFI,IREGI,IC_type,IRCON,IRCONc)
 !should be OK, changes EIN,EFI, outputs DMIX2,IC_type,sign
 !***********************************************************************
-REAL::                                SP,SPF,ALPHA,ALPHAK,ALPHAIPF,SPAC,EG,Z,G1,G2,GSQ,Q1,dummy,RN,G,SCALE
-DOUBLE PRECISION::                    AUX0,DRN,GAC
+REAL::                                SP,SPF,ALPHA,ALPHAK,ALPHAIPF,SPACING_INVERSE,EG,Z,G1,G2,GSQ,Q1,dummy,RN,G,SCALE
+DOUBLE PRECISION::                    AUX,DRN,GAC
 INTEGER::                             IPF,ISPF,ISEED,ISEEDEN,deaux,ISP,ISBS,IT,I,NL,IL,ITT,IT1,IT2,NLEV1
 REAL,dimension(1:2)::                 SIMPL,GG
 real::                                U,SPIN,EIN,EFI,SPFI,DMIX2,SIGN
@@ -918,8 +918,8 @@ real,dimension(:,:),allocatable::     sall
 integer,dimension(:,:,:,:),allocatable::ISDIS
 !globalni NBIN,BN,DELTA,NOPTFL,CORRI,Re2Res,Im2Res,ecrit,NENT,ELENT,CONVT,NENK,ELENK,CONVK,NEN_IPF,ELEN_IPF,CONV_IPF,NDIS,dekod,delev,despin,deparity,deltx
       IF (iregi.eq.2) GOTO 23
-      SPAC=1./DENSITY(EIN,SPIN,IPIN)
-      IF (SPAC.LE.0.0) SPAC=0.00001
+      SPACING_INVERSE = DENSITY(EIN,SPIN,IPIN) ! below we check for extremely high densities, later we check for zero
+      IF (SPACING_INVERSE.GT.1e7) SPACING_INVERSE=1e7 ! corresponds to spacing of 0.1eV
 !
     5 DRN=(DBLE(INT(DBLE(RAN0(IR))/1.D-4))+DBLE(RAN0(IR)))*1.D-4*(TOTCON(MODE)+DBLE(TOTDIS(MODE)))
       IF (DRN-TOTCON(MODE)) 1,2,2 !determine if transition ends in continuum or on discrete level
@@ -979,7 +979,6 @@ integer,dimension(:,:,:,:),allocatable::ISDIS
       EG=EIN-BN+(FLOAT(IBFI)-0.5)*DELTA
 !      EG=(FLOAT(IBFI-IBIN))*DELTA	       !Energies between mid-bins
       NL=LEVCON(IBFI,ISUBSC(SPFI),IPFI)-LEVCON(IBFI-1,ISUBSC(SPFI),IPFI)
-      AUX0=STCON(MODE,IBFI-1,ISBS,IPFI)
       Z=0.
       DO ITT=IT1,IT2
         SIMPL(ITT-IT1+1)=SGAMMA(EG,EIN,ITT)
@@ -1012,7 +1011,12 @@ integer,dimension(:,:,:,:),allocatable::ISDIS
          alpha = ALPH_TOT(EG,spfi,ipfi,0.0,spin,ipin,DMIX2,nent,elent,convt)
          Z = Z + (1. + alpha) * (GG(1)+GG(2))
        ENDIF
-       IF ((AUX0+DBLE(Z*SPAC)).GT.DRN) GOTO 9
+       IF (SPACING_INVERSE.GT.0.0) THEN
+        AUX = STCON(MODE,IBFI-1,ISBS,IPFI)+DBLE(Z/SPACING_INVERSE)
+       ELSE
+        AUX = STCON(MODE,IBFI-1,ISBS,IPFI)
+       ENDIF
+       IF (AUX.GT.DRN) GOTO 9
       ENDDO !IL
       GO TO 5
 !

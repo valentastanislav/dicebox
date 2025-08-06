@@ -188,8 +188,8 @@ REAL FUNCTION ALPH_TOT (EI,SPI,IPI,EF,SPF,IPF,DMISQ,NEN,ELEN,CONV)
 !           MUL1    - the next contributing multipolarity
 !                     (3 in this case)
 !
-real(4),dimension(:),allocatable:: ELEN
-real(4),dimension(:,:,:),allocatable:: CONV
+      real(4),dimension(:),allocatable:: ELEN
+      real(4),dimension(:,:,:),allocatable:: CONV
       INTEGER*4 MUL0,MUL1,IPI,IPF,NEN,IAUX,MAEL0,MAEL1
       REAL*4    EI,SPI,EF,SPF,DMISQ,EG,CT0,CT1
 !
@@ -235,7 +235,7 @@ REAL FUNCTION AICC(ETRA,TABEN,TABICC,MAEL,MUL,N)
       real(4),dimension(:,:,:),allocatable:: TABICC
       integer:: MAEL,MUL,N
       INTEGER:: I,J,K
-      REAL*4 XX(4),YY(4),A(4),ETRA
+      REAL :: XX(4),YY(4),A(4),ETRA
       logical :: LOG_INTERPOLATE
 !
       IF (ETRA.LE.TABEN(1)) THEN

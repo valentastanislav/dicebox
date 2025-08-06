@@ -221,15 +221,11 @@ real:: start, finish
           DO ILINc=1,NLINc
             CALL WIDTHS_R(ILINc,IPINC,SPINC(ILINc),IBIN,ILIN,TOTCON,STCON,GACON,ISCON,TOTDIS,STDISa,GADIS,&
                         ISDIS,LEVCON,IRCON,IRCONc,IFLAG,U,IREGI,EIN,EFI)
-            ! write(*,*) 'TOTDIS = ',TOTDIS(1),' and STDISa = ',(maxval(STDISa(1,:,-2,0))+maxval(STDISa(1,:,-1,0)) &
-            !  +maxval(STDISa(1,:,0,0))+maxval(STDISa(1,:,1,0))+maxval(STDISa(1,:,2,0))+maxval(STDISa(1,:,-2,1)) &
-            !  +maxval(STDISa(1,:,-1,1))+maxval(STDISa(1,:,0,1))+maxval(STDISa(1,:,1,1))+maxval(STDISa(1,:,2,1)))
           ENDDO
           IF (TOTDIS(1).GE.1.) write(*,*) 'total relative rad. width bigger than 1' !TODO make some security GOTO
           ! write(*,*) 'HERE ',TOTDIS(1),TOTCON(1), sngl(TOTCON(1))/(1.-TOTDIS(1))
           DO ILINc=1,NLINc
             dummy=sngl(TOTCON(ILINc))/(1-TOTDIS(ILINc))
-            ! write(*,*) 'after HERE',dummy
             DO IPFI=0,1
               SPIN=SPINC(ILINc)-INT(SPINC(ILINc)+.25)
               DO IS = 0, MAXJC
@@ -247,15 +243,9 @@ real:: start, finish
           IREGI=0
           IBIN=0
           ILIN=1
-          ! write(*,*) 'TOTDIS = ',TOTDIS(1),' and STDIS = ',(maxval(STDIS(1,:,-2,0))+maxval(STDIS(1,:,-1,0)) &
-          ! +maxval(STDIS(1,:,0,0))+maxval(STDIS(1,:,1,0))+maxval(STDIS(1,:,2,0))+maxval(STDIS(1,:,-2,1)) &
-          ! +maxval(STDIS(1,:,-1,1))+maxval(STDIS(1,:,0,1))+maxval(STDIS(1,:,1,1))+maxval(STDIS(1,:,2,1)))
           DO ILINc=1,NLINc
             CALL WIDTHS_R(ILINc,IPINC,SPINC(ILINc),IBIN,ILIN,TOTCON,STCON,GACON,ISCON,TOTDIS,STDIS,GADIS,&
                         ISDIS,LEVCON,IRCON,IRCONc,IFLAG,U,IREGI,EIN,EFI)
-            ! write(*,*) 'TOTDIS = ',TOTDIS(1),' and STDIS = ',(maxval(STDIS(1,:,-2,0))+maxval(STDIS(1,:,-1,0)) &
-            ! +maxval(STDIS(1,:,0,0))+maxval(STDIS(1,:,1,0))+maxval(STDIS(1,:,2,0))+maxval(STDIS(1,:,-2,1)) &
-            ! +maxval(STDIS(1,:,-1,1))+maxval(STDIS(1,:,0,1))+maxval(STDIS(1,:,1,1))+maxval(STDIS(1,:,2,1)))
           ENDDO
         ELSE  !Unknown primary intensities
           DO ILINc=1,NLINc
