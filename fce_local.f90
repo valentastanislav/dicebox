@@ -222,7 +222,7 @@ REAL FUNCTION AICC(ETRA,TABEN,TABICC,MAEL,MUL,N)
 !     These values Y for various I are assumed to represent internal
 !     conversion coefficients (ICC's) for generally non-equdistant
 !     transition energies that are specified by TABEN(I). MAEL stands for
-!     the type of a transition (0 for M1 and 1 for E1) while MUL means
+!     the type of a transition (1 for M1 and 0 for E1) while MUL means
 !     multipolarity. N is the length of the table for a fixed MAEL and MUL.
 !     Be careful, if ETRA (the energy at which it is desirable to get
 !     the ICC-coefficient) is lower than TABEN(1) or higher than TABEN(N),

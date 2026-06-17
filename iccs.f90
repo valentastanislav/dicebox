@@ -104,7 +104,7 @@ module iccs
     TYPE :: InterpolationTable
       INTEGER :: icc_number
       REAL(4), DIMENSION(:), ALLOCATABLE :: icc_energies
-      REAL(4), DIMENSION(:,:,:), ALLOCATABLE :: icc_values  ! (I=0,1), J=1,NMU, K=1,icc_number
+      REAL(4), DIMENSION(:,:,:), ALLOCATABLE :: icc_values  ! I=0,1 (type 0=E, 1=M), J=1,multipolarity, K=1,icc_number (number of grid energies)
     END TYPE
     TYPE(InterpolationTable), DIMENSION(1:N_Zs) :: AllTables
     TYPE(InterpolationTable), DIMENSION(1:N_Zs) :: KTables

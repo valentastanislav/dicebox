@@ -222,8 +222,12 @@ real:: start, finish
             CALL WIDTHS_R(ILINc,IPINC,SPINC(ILINc),IBIN,ILIN,TOTCON,STCON,GACON,ISCON,TOTDIS,STDISa,GADIS,&
                         ISDIS,LEVCON,IRCON,IRCONc,IFLAG,U,IREGI,EIN,EFI)
           ENDDO
-          IF (TOTDIS(1).GE.1.) write(*,*) 'total relative rad. width bigger than 1' !TODO make some security GOTO
-          ! write(*,*) 'HERE ',TOTDIS(1),TOTCON(1), sngl(TOTCON(1))/(1.-TOTDIS(1))
+          IF (TOTDIS(1).GE.1.) THEN
+            write(*,*) 'ERROR: total relative radiative width to low-lying levels is greater than 1'
+            write(*,*) 'Change the Normalization factor for intensities in the .INP file to express'
+            write(*,*) ' primary intensities per neutron capture; their sum must be below 1.'
+            STOP 'Invalid input. Refusing to continue.'
+          ENDIF
           DO ILINc=1,NLINc
             dummy=sngl(TOTCON(ILINc))/(1-TOTDIS(ILINc))
             DO IPFI=0,1

@@ -31,9 +31,10 @@ SUBROUTINE READ_EV(NAME,lopopgs,KONTROLMATRIX,depop,depop_err)
 INTEGER,PARAMETER::     MAXJC  = 49
 character(80)::         NAME
 logical::               lopopgs
+integer,dimension(1:4):: temp_kontrolmatrix
 integer,dimension(:,:),allocatable:: KONTROLMATRIX
 real,dimension(:),allocatable::   depop,depop_err
-INTEGER::               I,J,K,NMU,ipfi,ipar,control,J_range,tabJ,idummy
+INTEGER::               I,J,K,ipfi,ipar,control,J_range,tabJ,idummy
 REAL::                  enrg,spfi
 REAL::                  enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,FSPAC,corrAlpha,corrDelta
       N_MSC_FS=0
@@ -49,7 +50,7 @@ REAL::                  enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,FSPAC,corrA
       READ (5,*)
       READ (5,*) ISWWR,ISWBN,ISWEL,ISWSP,ISWPA,ISWIC,ISWMX,ISWWI,ISWLS
       READ (5,*)
-      READ (5,*) NBIN,(PAR_E1(I),I=1,4)
+      READ (5,*) NBIN,(temp_kontrolmatrix(I),I=1,4)
       READ (5,*)
       READ (5,*) NOPTFL,NOPTE1,NOPTM1,NOPTE2,NOPTDE,LMODE,LDENP,LDSTAG
       READ (5,*)
@@ -60,7 +61,7 @@ REAL::                  enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,FSPAC,corrA
        allocate(KONTROLMATRIX(1:4,1:NREAL))
       endif
       DO I=1,4
-        KONTROLMATRIX(I,1)=PAR_E1(I)
+        KONTROLMATRIX(I,1)=temp_kontrolmatrix(I)
       ENDDO
 
 !
@@ -134,20 +135,19 @@ REAL::                  enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,FSPAC,corrA
       NLINc=1
       CAPFR(1)=1.
 !
-!     Now read the tables of ICC-coefficients and other information
+!     Now get the tables of ICC-coefficients and other information
 !     on electron conversion. The used notation:
 !
-!             XRAYK,XRAYL         -- electron binding energy for K-shell
-!                                    (and L-shell) expressed in MeV
-!             NENT,NENK           -- the number of electron energy points
-!             NMU                 -- the highest multipolarity, e.g. 3 for
-!                                    octupole (electric and magnetic)
-!             CONVK(I,MU,K)       -- K-shell ICC for I-th type of radiation
-!                                    (0 for electric, 1 for magnetic),
-!                                    multipolarity MU and K-th electron
-!                                    energy value
-!             CONVT(I,M,K)        -- total ICC ... (as the CONVK)
-!             ELENT(K),ELENK(K)   -- K-th value of electron energy
+!    XRAYK,XRAYL                   -- electron binding energy for K-shell
+!                                     (and L-shell) expressed in MeV
+!    NENT,NENK,NEN_IPF             -- the number of electron energy points
+!    CONVT(I,M,K)                  -- total ICC for I-th type of radiation
+!                                     (0 for electric, 1 for magnetic),
+!                                     multipolarity M and K-th electron
+!                                     energy value
+!    CONVT(I,M,K)                  -- K-shell ICC ... (as the CONVT)
+!    CONV_IPF(I,M,K)               -- internal pair formation ICC ... (as the CONVT)
+!    ELENT(K),ELENK(K),ELEN_IPF(K) -- K-th value of electron energy
 !
       xrayk = 1e-6*f_table(1, NINT(ZNUM))
       xrayl = 1e-6*f_table(2, NINT(ZNUM))
@@ -655,8 +655,8 @@ integer::                             MODE,IPIN,IBIN,ILIN,IFLAG,IREGI
 integer,dimension(:),allocatable::    IRCONc,IRCON
 integer,dimension(:,:,:),allocatable::LEVCON
 integer,dimension(:,:,:,:),allocatable::ISDIS
-INTEGER::                             IPFI,ISPFI,ISP,IP,IS,I,NLEV,ISEED,ISEEDGS,ISEEDORIG,ISBS,IT,IT1,IT2,ITT,IL,NL,ICOR
-REAL::                                SPFI,Q,SPACING_INVERSE,SP,EG,Z,GSQ,G,CLEB,alpha,DMIX2
+INTEGER::                             IPFI,ISPFI,ISP,IP,IS,I,NLEV,ISEED,ISBS,IT,IT1,IT2,ITT,IL,NL
+REAL::                                SPFI,Q,SPACING_INVERSE,SP,EG,Z,GSQ,G,alpha,DMIX2
 REAL,dimension(1:2)::                 SIMPL,GG
 !globalni NOPTFL,DELTA,corri,re2res,im2res,NDIS,ENDIS,BN,NBIN
 !
