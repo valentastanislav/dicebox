@@ -151,7 +151,7 @@ REAL::                  enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,FSPAC,corrA
 !
       xrayk = 1e-6*f_table(1, NINT(ZNUM))
       xrayl = 1e-6*f_table(2, NINT(ZNUM))
-      write(*,*) xrayk, xrayl
+      write(*,*) 'X-ray energies:', xrayk, xrayl
       CALL InitICCs()
       NENT = AllTables(NINT(ZNUM))%icc_number
       allocate(ELENT(1:NENT))
@@ -425,9 +425,9 @@ REAL::                  enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,FSPAC,corrA
           WRITE(*,*) 'tabulated LD does not span up to the initial state: ',TABENLD(NLD),' vs ',BN
           STOP
         ENDIF
-!
-!     "Normalization to experimental level spacing" - spfi/ipfi needed
-!
+        !
+        !  "Normalization to experimental level spacing" - spfi/ipfi needed
+        !
         IF (spfi.EQ.0.0) THEN !matching the s-wave spacing for even-even target with gs spin 0
          FSPAC = (1.0 / SPACRES * 1e6) / DENSITY(BN,spfi+0.5,ipfi)
          corrAlpha=0.0
@@ -463,6 +463,20 @@ REAL::                  enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,FSPAC,corrA
         ENDDO
         write(*,*) 'normalization of tabulated NLD done'
         CLOSE (UNIT=5,STATUS='KEEP')
+        IF (ISWLS.EQ.1) THEN
+          WRITE(*,*) 'writing renormalized tabulated NLD to LDTAB_RENORM.DAT'
+          OPEN (UNIT=5,FILE='LDTAB_RENORM.DAT',STATUS='REPLACE')
+          WRITE(5,*) 'energy  J=0  J=1  J=2  J=3  J=4  J=5  J=6  J=7  J=8  J=9  J=10'
+          DO I = 1, NLD
+            WRITE(5,*) TABENLD(I),(TABLD(I,J,0),J=0,10)
+          ENDDO
+          WRITE(5,*) 
+          WRITE(5,*) 
+          DO I = 1, NLD
+            WRITE(5,*) TABENLD(I),(TABLD(I,J,1),J=0,10)
+          ENDDO
+          CLOSE (UNIT=5,STATUS='KEEP')
+        ENDIF
       ENDIF
 
       IF (TRGT_SPIN.EQ.0.0) THEN
