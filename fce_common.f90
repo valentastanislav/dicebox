@@ -1114,19 +1114,42 @@ real::            EGAM,EINI
           ENDDO
           SGAMMA=PIH*Q*EGAM**3
           RETURN
-        ELSEIF (NOPTE1.EQ.39) THEN   ! Pure Fermi liquid theory (Kadmenskij)
-!                                      suppressed for small EGAM - const. T !!!
-          TFIN=PAR_E1(2)
+        ELSEIF (NOPTE1.EQ.39) THEN   ! EGLO (#3) with low-lying SLOs = pygmy resonance(s)
+! NLOWLOR resonances of Lorentzian shape pygmy, then NGIGE resonances of EGLO shape
           Q=0.
-          DO I=1,NGIGE
-            W=W0(I)*(EGAM**2+PI42*TFIN**2)/ER(I)**2
-            QQ=FERMC*SIG(I)*W0(I)*W*ER(I)/(EGAM**2-ER(I)**2)**2
+          DO I=1,NLOWLOR
+            QQ=SIG(I)*(EGAM*W0(I)**2/((EGAM**2-ER(I)**2)**2+(EGAM*W0(I))**2))
             Q=Q+QQ
           ENDDO
-          x=DIPSLP*EGAM+DIPZER 
-          if (x.LT.PAR_E1(3)) x=PAR_E1(3)
-          if (x.GT.1.0)    x=1.0
-          SGAMMA=PIH*Q*EGAM**3*x
+          TFIN=TERM(EINI-EGAM)
+          DO I=NLOWLOR+1,NGIGE+NLOWLOR
+            WPHEN=EK0+(1.-EK0)*(EGAM-EGZERO)/(ER(I)-EGZERO)
+            W=WPHEN*W0(I)*(EGAM**2+PI42*TFIN**2)/ER(I)**2 !energy and temperature dependent width
+            WPHENZ=EK0-(1.-EK0)*EGZERO/(ER(I)-EGZERO)
+            SLIM=WPHENZ*FERMC*PI42*TFIN**2*W0(I)/ER(I)**5 !the non-zero limit at Egam-->0
+            QQ=SIG(I)*W0(I)*(SLIM+EGAM*W/((EGAM**2-ER(I)**2)**2+(EGAM*W)**2))
+            Q=Q+QQ
+          ENDDO
+          SGAMMA=PAR_E1(1)*PIH*Q*EGAM**3
+          RETURN
+        ELSEIF (NOPTE1.EQ.83) THEN  ! EGLO (#3) with constant T + Lorentzian pygmy (Oslo - actinides)
+! NLOWLOR resonances of Lorentzian shape pygmy, then NGIGE resonances of EGLO shape
+          Q=0.
+          DO I=1,NLOWLOR
+            QQ=SIG(I)*(EGAM*W0(I)**2/((EGAM**2-ER(I)**2)**2+(EGAM*W0(I))**2))
+            Q=Q+QQ
+          ENDDO
+          TFIN=PAR_E1(2)
+          DO I=NLOWLOR+1,NGIGE+NLOWLOR
+            WPHEN=EK0+(1.-EK0)*(EGAM-EGZERO)/(ER(I)-EGZERO)
+            W=WPHEN*W0(I)*(EGAM**2+PI42*TFIN**2)/ER(I)**2
+            WPHENZ=EK0-(1.-EK0)*EGZERO/(ER(I)-EGZERO)
+            SLIM=WPHENZ*FERMC*PI42*TFIN**2*W0(I)/ER(I)**5
+            QQ=SIG(I)*W0(I)*(SLIM+EGAM*W/((EGAM**2-ER(I)**2)**2+(EGAM*W)**2))
+            Q=Q+QQ
+          ENDDO
+          SGAMMA=PAR_E1(1)*PIH*Q*EGAM**3
+          SFCEE1=SGAMMA
           RETURN
         ELSEIF (NOPTE1.EQ.64) THEN   ! Pure Fermi liquid theory (Kadmenskij)
 !                                      suppressed for small EGAM
@@ -1498,7 +1521,7 @@ real::            EGAM,EINI
           SGAMMA=PIH*Q*EGAM**3
           RETURN
 !
-        ELSEIF (NOPTE1.EQ.41) THEN   !!!!!! Oslo KMF for Yb
+        ELSEIF (NOPTE1.EQ.41) THEN   !!!!!! Oslo KMF, their temperature, optional softpole
           TFIN=TERMOSLO(EINI-EGAM)        
           Q=0.
           DO I=1,NGIGE
@@ -1506,7 +1529,8 @@ real::            EGAM,EINI
            QQ=FERMC*SIG(I)*W0(I)*W*ER(I)/(EGAM**2-ER(I)**2)**2
            Q=Q+QQ
           ENDDO
-          SGAMMA=PAR_E1(1)*PIH*Q*EGAM**3    
+          Q = PAR_E1(1)*Q + PAR_E1(2)/(EGAM**PAR_E1(3))
+          SGAMMA=PIH*Q*EGAM**3
         RETURN
         ELSEIF (NOPTE1.EQ.42) THEN   !!!!!! Oslo KMF - our temperature
           TFIN=TERM(EINI-EGAM)        
@@ -1532,16 +1556,19 @@ real::            EGAM,EINI
           ENDDO
           SGAMMA=PAR_E1(1)*PIH*Q*EGAM**3
         RETURN
-        ELSEIF (NOPTE1.EQ.43) THEN   !!!!!! Oslo KMF; including softpole
-          TFIN=TERMOSLO(EINI-EGAM)        
+        ELSEIF (NOPTE1.EQ.43) THEN   !!!!!! KMF Pure Fermi liquid theory (Kadmenskij)
+!                                      suppressed for small EGAM - const. T !!!
+          TFIN=PAR_E1(2)
           Q=0.
           DO I=1,NGIGE
-           W=W0(I)*(EGAM**2+PI42*TFIN**2)/ER(I)**2
-           QQ=FERMC*SIG(I)*W0(I)*W*ER(I)/(EGAM**2-ER(I)**2)**2
-           Q=Q+QQ
+            W=W0(I)*(EGAM**2+PI42*TFIN**2)/ER(I)**2
+            QQ=FERMC*SIG(I)*W0(I)*W*ER(I)/(EGAM**2-ER(I)**2)**2
+            Q=Q+QQ
           ENDDO
-          Q=Q+PAR_E1(2)/(EGAM**PAR_E1(3))
-          SGAMMA=PAR_E1(1)*PIH*Q*EGAM**3    
+          x=DIPSLP*EGAM+DIPZER 
+          if (x.LT.PAR_E1(3)) x=PAR_E1(3)
+          if (x.GT.1.0)    x=1.0
+          SGAMMA=PIH*Q*EGAM**3*x
         RETURN
         ELSEIF (NOPTE1.EQ.44) THEN   !!!!!! Oslo KMF - our temperature; including softpole
           TFIN=TERM(EINI-EGAM)        
@@ -1644,20 +1671,6 @@ real::            EGAM,EINI
            Q=Q+QQ
           ENDDO
           SGAMMA=PAR_E1(1)*PIH*Q*EGAM**3    
-        RETURN
-        ELSEIF (NOPTE1.EQ.83) THEN  ! EGLO(3) with constant T + Lorentzian pygmy (Oslo - actinides)
-          TFIN=PAR_E1(2)
-          Q=SIG(1)*(EGAM*W0(1)**2/((EGAM**2-ER(1)**2)**2+(EGAM*W0(1))**2)) ! pygmy
-          DO I=2,NGIGE
-            WPHEN=EK0+(1.-EK0)*(EGAM-EGZERO)/(ER(I)-EGZERO)
-            W=WPHEN*W0(I)*(EGAM**2+PI42*TFIN**2)/ER(I)**2
-            WPHENZ=EK0-(1.-EK0)*EGZERO/(ER(I)-EGZERO)
-            SLIM=WPHENZ*FERMC*PI42*TFIN**2*W0(I)/ER(I)**5
-            QQ=SIG(I)*W0(I)*(SLIM+EGAM*W/((EGAM**2-ER(I)**2)**2+(EGAM*W)**2))
-            Q=Q+QQ
-          ENDDO
-          SGAMMA=PAR_E1(1)*PIH*Q*EGAM**3
-          SFCEE1=SGAMMA
           RETURN
         ELSEIF (NOPTE1.EQ.25) THEN    !Pure Chrien+Kopecky model but Toshihiko's interpretation of temperature, NOT exactly his temperature!!!
           TFIN=TERM(BN-EGAM)
