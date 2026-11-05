@@ -771,7 +771,7 @@ real::            EGAM,EINI
         IF     (NOPTE1.EQ.0) THEN   ! The single-particle approximation
           SGAMMA=DEG*EGAM**3
           RETURN
-        ELSEIF (NOPTE1.EQ.1) THEN   ! Classical Lorentzian
+        ELSEIF (NOPTE1.EQ.1) THEN   ! Classical Lorentzian SLO
           Q=0.
           DO I=1,NGIGE              ! loop over both GDR peaks
             QQ=SIG(I)*(EGAM*W0(I)**2/((EGAM**2-ER(I)**2)**2+(EGAM*W0(I))**2))
@@ -785,10 +785,10 @@ real::            EGAM,EINI
           SGAMMA = SGAMMA * EGAM**3
           SFCEE1=SGAMMA
           RETURN
-        ELSEIF (NOPTE1.EQ.50) THEN  ! Goriely tables
+        ELSEIF (NOPTE1.EQ.50) THEN  ! Goriely tables + SLOs
           SGAMMA = APSF(EGAM,1)*EGAM**3
           Q=0.
-          DO I=1,NGIGE              ! loop over both GDR peaks
+          DO I=1,NGIGE              ! loop over SLOs
             QQ=SIG(I)*(EGAM*W0(I)**2/((EGAM**2-ER(I)**2)**2+(EGAM*W0(I))**2))
             Q=Q+QQ
           ENDDO
@@ -796,12 +796,12 @@ real::            EGAM,EINI
           SFCEE1=SGAMMA
           RETURN
         ELSEIF (NOPTE1.EQ.91) THEN  !SLO with exponential low energy enhancement as requested by Artemis
-          Q=SIG(1)*EXP(-(EGAM-ER(1))*W0(1))
-          DO I=2,NGIGE
+          Q=0.
+          DO I=1,NGIGE
             QQ=SIG(I)*(EGAM*W0(I)**2/((EGAM**2-ER(I)**2)**2+(EGAM*W0(I))**2))
             Q=Q+QQ
           ENDDO
-          SGAMMA=PIH*Q*EGAM**3
+          SGAMMA=(PIH*Q + PAR_E1(1) * EXP(-PAR_E1(2)*EGAM) *(1.0+PAR_E1(3)*EGAM**PAR_E1(4)))*EGAM**3
           RETURN
         ELSEIF (NOPTE1.EQ.2) THEN   !ELO = GDER with E,T-dependent damping
           TFIN=TERM(EINI-EGAM)
@@ -811,10 +811,9 @@ real::            EGAM,EINI
             QQ=SIG(I)*W0(I)*(EGAM*W/((EGAM**2-ER(I)**2)**2+(EGAM*W)**2))
             Q=Q+QQ
           ENDDO
-          SGAMMA=PIH*Q*EGAM**3
+          SGAMMA=(PIH*Q + PAR_E1(1) * EXP(-PAR_E1(2)*EGAM) *(1.0+PAR_E1(3)*EGAM**PAR_E1(4)))*EGAM**3
           RETURN
-        ELSEIF (NOPTE1.EQ.3) THEN  !Empirical generalization of temperature
-!          dependent damping according to Kopecky in Chrien model (EGLO)
+        ELSEIF (NOPTE1.EQ.3) THEN  !Empirical generalization of temperature dependent damping according to Kopecky in Chrien model (EGLO)
           TFIN=TERM(EINI-EGAM)
           Q=0.
           DO I=1,NGIGE
@@ -825,7 +824,7 @@ real::            EGAM,EINI
             QQ=SIG(I)*W0(I)*(SLIM+EGAM*W/((EGAM**2-ER(I)**2)**2+(EGAM*W)**2))
             Q=Q+QQ
           ENDDO
-          SGAMMA=PIH*Q*EGAM**3
+          SGAMMA=(PIH*Q + PAR_E1(1) * EXP(-PAR_E1(2)*EGAM) *(1.0+PAR_E1(3)*EGAM**PAR_E1(4)))*EGAM**3
           RETURN
         ELSEIF (NOPTE1.EQ.4) THEN   ! Pure Fermi liquid theory (Kadmenskij)
           TFIN=TERM(EINI-EGAM)          ! (no high energy approximation)
@@ -835,7 +834,7 @@ real::            EGAM,EINI
             QQ=FERMC*SIG(I)*W0(I)*W*ER(I)/(EGAM**2-ER(I)**2)**2
             Q=Q+QQ
           ENDDO
-          SGAMMA=PIH*Q*EGAM**3
+          SGAMMA=(PIH*Q + PAR_E1(1) * EXP(-PAR_E1(2)*EGAM) *(1.0+PAR_E1(3)*EGAM**PAR_E1(4)))*EGAM**3
           RETURN
         ELSEIF (NOPTE1.EQ.5) THEN    !GLO as called nowdays, Pure Chrien model (similar to !OPT=3,but no Kadmenskij for low EGAM) viz Kopecky
           TFIN=TERM(EINI-EGAM)
@@ -846,20 +845,20 @@ real::            EGAM,EINI
             QQ=SIG(I)*W0(I)*(SLIM+EGAM*W/((EGAM**2-ER(I)**2)**2+(EGAM*W)**2))
             Q=Q+QQ
           ENDDO
-          SGAMMA=PIH*Q*EGAM**3
+          SGAMMA=(PIH*Q + PAR_E1(1) * EXP(-PAR_E1(2)*EGAM) *(1.0+PAR_E1(3)*EGAM**PAR_E1(4)))*EGAM**3
           RETURN
         ELSEIF (NOPTE1.EQ.56) THEN  !GLO with constant temperature and low-energy enhancement (for Artemis)
-          TFIN=PAR_E1(2)
-          Q=SIG(1)*EXP(-W0(1)*(EGAM-ER(1)))
-          DO I=2,NGIGE
+          TFIN=PAR_E1(3)
+          Q=0.
+          DO I=1,NGIGE
             W=W0(I)*(EGAM**2+PI42*TFIN**2)/ER(I)**2
             SLIM=FERMC*PI42*TFIN**2*W0(I)/ER(I)**5
             QQ=SIG(I)*W0(I)*(SLIM+EGAM*W/((EGAM**2-ER(I)**2)**2+(EGAM*W)**2))
             Q=Q+QQ
           ENDDO
-          SGAMMA=PIH*Q*EGAM**3
+          SGAMMA=(PIH*Q + PAR_E1(1) * EXP(-PAR_E1(2)*EGAM))*EGAM**3
           RETURN
-        ELSEIF (NOPTE1.EQ.58) THEN  ! GLO with constant temperature and pygmy resonance(s)
+        ELSEIF (NOPTE1.EQ.58) THEN  ! GLO with constant temperature and pygmy resonance(s) with SLO shape
           TFIN=PAR_E1(2)
           Q=0.
           DO I=1,NLOWLOR
@@ -884,7 +883,7 @@ real::            EGAM,EINI
             QQ=SIG(I)*W0(I)*(SLIM+EGAM*W/((EGAM**2-ER(I)**2)**2+(EGAM*W)**2))
             Q=Q+QQ
           ENDDO
-          SGAMMA=PIH*Q*EGAM**3
+          SGAMMA=(PIH*Q + PAR_E1(1) * EXP(-PAR_E1(2)*EGAM) *(1.0+PAR_E1(3)*EGAM**PAR_E1(4)))*EGAM**3
           RETURN
         ELSEIF (NOPTE1.EQ.7) THEN   ! SMLO
           IF (EGAM.LE.EINI) THEN
@@ -915,9 +914,11 @@ real::            EGAM,EINI
         ELSEIF (NOPTE1.EQ.8) THEN   ! Fermi liquid theory (Kadmenskij)
           TFIN=TERM(EINI-EGAM)      ! with 1st resonance of Lorentz. shape
           Q=0.
-          QQ=SIG(1)*(EGAM*W0(1)**2/((EGAM**2-ER(1)**2)**2+(EGAM*W0(1))**2))
-          Q=Q+QQ
-          DO I=2,NGIGE
+          DO I=1,NLOWLOR
+            QQ=SIG(I)*(EGAM*W0(I)**2/((EGAM**2-ER(I)**2)**2+(EGAM*W0(I))**2))
+            Q=Q+QQ
+          ENDDO
+          DO I=NLOWLOR+1,NGIGE+NLOWLOR
             W=W0(I)*(EGAM**2+PI42*TFIN**2)/ER(I)**2
             QQ=FERMC*SIG(I)*W0(I)*W*ER(I)/(EGAM**2-ER(I)**2)**2
             Q=Q+QQ
@@ -929,9 +930,11 @@ real::            EGAM,EINI
 !          with the first resonance of Lorentzian type = pygmy
           TFIN=TERM(EINI-EGAM)
           Q=0.
-          QQ=SIG(1)*(EGAM*W0(1)**2/((EGAM**2-ER(1)**2)**2+(EGAM*W0(1))**2))
-          Q=Q+QQ
-          DO I=2,NGIGE
+          DO I=1,NLOWLOR
+            QQ=SIG(I)*(EGAM*W0(I)**2/((EGAM**2-ER(I)**2)**2+(EGAM*W0(I))**2))
+            Q=Q+QQ
+          ENDDO
+          DO I=NLOWLOR+1,NGIGE+NLOWLOR
             WPHEN=EK0+(1.-EK0)*(EGAM-EGZERO)/(ER(I)-EGZERO)
             W=WPHEN*W0(I)*(EGAM**2+PI42*TFIN**2)/ER(I)**2 !energy and temperature dependent width
             SLIM=FERMC*PI42*TFIN**2*W0(I)/ER(I)**5 !the non-zero limit at Egam-->0
@@ -1760,7 +1763,7 @@ real::            EGAM,EINI
           ENDIF
           SFCEM1=SGAMMA
           IF (ITYP.EQ.3) RETURN
-        ELSEIF (NOPTM1.EQ.7) THEN   ! SMLO = Classical Lorentzian on backgroung
+        ELSEIF (NOPTM1.EQ.7) THEN   ! SMLO = SLO Classical Lorentzian on backgroung
           Q=0.                      ! which is described by exponencial fcion
           DO I=1,NGIGM
             QQ=SIGM(I)*EGAM*WM0(I)**2/((EGAM**2-ERM(I)**2)**2+(EGAM*WM0(I))**2)

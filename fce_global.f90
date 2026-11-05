@@ -69,7 +69,7 @@ REAL::                  enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,FSPAC,corrA
 !
       NLOWLOR=0
       READ (5,*)
-      IF((NOPTE1.EQ.66).OR.(NOPTE1.EQ.77).OR.(NOPTE1.EQ.58).OR.(NOPTE1.EQ.39).OR.(NOPTE1.EQ.83)) THEN
+      IF((NOPTE1.EQ.66).OR.(NOPTE1.EQ.77).OR.(NOPTE1.EQ.58).OR.(NOPTE1.EQ.39).OR.(NOPTE1.EQ.83).OR.(NOPTE1.EQ.8).OR.(NOPTE1.EQ.9)) THEN
         READ (5,*) NGIGE, NLOWLOR
         DO I=1, NGIGE+NLOWLOR
           READ (5,*) ER(I),W0(I),SIG(I)
@@ -97,7 +97,7 @@ REAL::                  enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,FSPAC,corrA
       READ (5,*)
       READ (5,*) FERMC, EK0, EGZERO, PAIR_PSF
       READ (5,*)
-      READ (5,*) (PAR_E1(I),I=1,3) ! was DIPELO,DIPEHI,DIPSUP
+      READ (5,*) (PAR_E1(I),I=1,4) ! was DIPELO,DIPEHI,DIPSUP
         DIPSLP=(1.0-PAR_E1(3))/(PAR_E1(2)-PAR_E1(1))
         DIPZER=1.0-DIPSLP*PAR_E1(2)
       READ (5,*)
@@ -1567,16 +1567,28 @@ CHARACTER*14 tdens,tsfe1,tsfm1,tsfe2
           tsfe1='SP'
         ELSEIF (NOPTE1.EQ.1) THEN
           tsfe1='SLO'
-        ELSEIF (NOPTE1.EQ.2) THEN
+        ELSEIF (NOPTE1.EQ.91) THEN
+          tsfe1='SLO+LEE'
+        ELSEIF ((NOPTE1.EQ.2).AND.(PAR_E1(1).EQ.0.0)) THEN
           tsfe1='ELO'
-        ELSEIF (NOPTE1.EQ.3) THEN
+        ELSEIF (NOPTE1.EQ.2) THEN
+          tsfe1='ELO+LEE'
+        ELSEIF ((NOPTE1.EQ.3).AND.(PAR_E1(1).EQ.0.0)) THEN
           tsfe1='EGLO'
-        ELSEIF (NOPTE1.EQ.4) THEN
+        ELSEIF (NOPTE1.EQ.3) THEN
+          tsfe1='EGLO+LEE'
+        ELSEIF ((NOPTE1.EQ.4).AND.(PAR_E1(1).EQ.0.0)) THEN
           tsfe1='KMF'
-        ELSEIF (NOPTE1.EQ.5) THEN
+        ELSEIF (NOPTE1.EQ.4) THEN
+          tsfe1='KMF+LEE'
+        ELSEIF ((NOPTE1.EQ.5).AND.(PAR_E1(1).EQ.0.0)) THEN
           tsfe1='GLO'
-        ELSEIF (NOPTE1.EQ.6) THEN
+        ELSEIF (NOPTE1.EQ.5) THEN
+          tsfe1='GLO+LEE'
+        ELSEIF ((NOPTE1.EQ.6).AND.(PAR_E1(1).EQ.0.0)) THEN
           tsfe1='MGLO'
+        ELSEIF (NOPTE1.EQ.6) THEN
+          tsfe1='MGLO+LEE'
         ELSEIF (NOPTE1.EQ.7) THEN
           tsfe1='SMLO'
         ELSEIF (NOPTE1.EQ.8) THEN
@@ -1587,6 +1599,8 @@ CHARACTER*14 tdens,tsfe1,tsfm1,tsfe2
           tsfe1='KMF->SLO'
         ELSEIF (NOPTE1.EQ.11) THEN
           tsfe1='(Goriely) tabs'
+        ELSEIF (NOPTE1.EQ.11) THEN
+          tsfe1='tabs+SLOs'
         ELSEIF (NOPTE1.EQ.28) THEN
           tsfe1='CoH3 GL'
         ENDIF  !TODO continue updating these and decide if to be used
