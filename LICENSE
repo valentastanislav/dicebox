@@ -1,0 +1,153 @@
+DICEBOX Parallel Version - Non-Commercial Research License
+Version 1.1, November 6, 2026
+
+Copyright (c) 2010-present Stanislav Valenta, Milan Krtička, František Bečvář.
+All rights reserved, except as expressly granted below.
+
+THIS IS NOT AN OPEN-SOURCE LICENSE. Please read it before using the Software.
+
+
+1. DEFINITIONS
+
+"Software" means the source code, documentation, input examples and any other
+material in the repository https://github.com/valentastanislav/dicebox
+(the "Original Repository"), in any version, and any part of it.
+
+"Authors" means Stanislav Valenta and Milan Krtička, who act on behalf of all
+copyright holders of the Software.
+
+"Modified Version" means any work that contains, is based on, or is derived
+from the Software or any substantial part of it, in source or compiled form,
+including modified versions, translations into another programming language,
+and versions produced or altered with automated tools, including AI-based
+tools.
+
+"Fork" means a copy of the Original Repository created with GitHub's "Fork"
+function that remains part of the fork network of the Original Repository,
+so that GitHub displays the Original Repository as its source
+("forked from valentastanislav/dicebox").
+
+"Non-Commercial Purpose" means teaching, personal study, and scientific
+research carried out by individuals, universities, public research
+institutions, or government research laboratories, where neither the Software
+nor the results obtained with it are used primarily for commercial advantage
+or monetary compensation.
+
+"Commercial Use" means any use that is not for a Non-Commercial Purpose,
+including in particular:
+  (a) use by or on behalf of a for-profit entity in the course of its
+      business;
+  (b) use in or for a product or service that is sold, licensed, or offered
+      for a fee;
+  (c) use in paid consulting, paid services, or contract research performed
+      for a for-profit entity;
+  (d) selling or licensing the Software or a Modified Version, or bundling it
+      with anything that is sold or licensed for a fee.
+
+
+2. PERMITTED USE
+
+Subject to the terms of this License, the Authors grant you a free,
+non-exclusive, non-transferable, worldwide license to:
+  (a) download, compile, run, and study the Software for a Non-Commercial
+      Purpose;
+  (b) modify the Software for your own Non-Commercial Purpose;
+  (c) publish scientific results obtained with the Software or a Modified
+      Version, subject to Section 6;
+  (d) share copies of the Software or a Modified Version privately
+      (non-publicly) with collaborators for the same Non-Commercial Purpose,
+      provided that this License is included and the recipients are bound by
+      it;
+  (e) create Forks in accordance with Section 4 and contribute changes back
+      to the Original Repository through pull requests.
+
+
+3. NO PUBLIC REDISTRIBUTION OUTSIDE FORKS
+
+You may NOT publish, upload, host, distribute, or otherwise make publicly
+available the Software or any Modified Version - in particular as a new or
+separate repository on GitHub or any other platform, in a package registry,
+or as part of another software package - except:
+  (a) as a Fork in accordance with Section 4; or
+  (b) with the prior written permission of the Authors.
+
+This prohibition applies even if the publicly available copy acknowledges,
+cites, or links to the Original Repository or the Authors.
+
+
+4. CONDITIONS FOR FORKS
+
+A Fork may contain modifications, provided that:
+  (a) it keeps this License and all copyright notices unchanged;
+  (b) it is not detached from the fork network of the Original Repository,
+      and its content is not copied or re-uploaded elsewhere as an
+      independent repository;
+  (c) its README states clearly at the top that it is an unofficial,
+      modified fork of the Original Repository, links to the Original
+      Repository, and briefly describes the changes made;
+  (d) it does not present itself as an official version of the Software:
+      the name "DICEBOX" may be used only together with a clear indication
+      that it is a modified fork, and version numbers must not imitate
+      official releases (for example, use a suffix such as "1.2-forkname");
+  (e) the Fork and everything derived from it remain subject to this
+      License.
+
+
+5. COMMERCIAL USE
+
+Any Commercial Use of the Software or of a Modified Version requires the
+prior written permission of the Authors. Requests should be sent to:
+  Stanislav Valenta, stanislav.valenta@matfyz.cuni.cz
+  Milan Krtička, milan.krticka@matfyz.cuni.cz
+
+
+6. CITATION
+
+Publications, presentations, theses, and other works that use results
+obtained with the Software or a Modified Version must cite:
+  - F. Bečvář, Nucl. Instrum. Methods Phys. Res. A 417, 434 (1998),
+        DOI 10.1016/s0168-9002(98)00787-6;
+  - S. Valenta, M. Krtička, DICEBOX parallel version,
+        https://github.com/valentastanislav/dicebox;
+and must identify the version used (release tag or commit hash).
+
+
+7. RELATION TO THE GPL SERIAL VERSION
+
+The parallel version of DICEBOX in this repository is not licensed
+under the GNU General Public License, although it is based on the serial version;
+its copyright holders make it available solely under this License.
+
+The serial version of DICEBOX distributed by the IAEA Nuclear Data Section
+under the GNU General Public License is a separate release and is not covered
+by this License. Nothing in this License limits any rights that anyone has
+under the GNU General Public License to that serial version as obtained from
+that source.
+
+
+8. NO WARRANTY; LIMITATION OF LIABILITY
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT. TO THE MAXIMUM EXTENT
+PERMITTED BY LAW, THE AUTHORS AND COPYRIGHT HOLDERS SHALL NOT BE LIABLE FOR
+ANY CLAIM, DAMAGES, OR OTHER LIABILITY ARISING FROM, OUT OF, OR IN CONNECTION
+WITH THE SOFTWARE OR ITS USE.
+
+
+9. TERMINATION
+
+Any breach of this License automatically terminates all rights granted to you
+under it. The Authors may reinstate those rights by written notice.
+Sections 3, 5, and 8 survive termination.
+
+
+10. GOVERNING LAW
+
+This License is governed by the laws of the Czech Republic.
+
+
+11. OTHER PERMISSIONS
+
+Any use not expressly permitted by this License requires the prior written
+permission of the Authors (see Section 5 for contact details).
