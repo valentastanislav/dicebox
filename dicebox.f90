@@ -152,7 +152,8 @@ real:: start, finish
         if (.not.allocated(NR_STEPS)) then
           allocate(NR_STEPS(1:NEVENTS))
         endif
-!$OMP DO SCHEDULE(DYNAMIC)
+!     NDEAD and NISOM are incremented by all threads -> REDUCTION, otherwise updates get lost (race)
+!$OMP DO SCHEDULE(DYNAMIC) REDUCTION(+:NDEAD,NISOM)
       DO NUC=1,NREAL
        IR1=KONTROLMATRIX(1,NUC) !level scheme
        IR2=KONTROLMATRIX(2,NUC) !radiation widths in form of precursors and low-lying intensity fluctuations
@@ -160,6 +161,8 @@ real:: start, finish
        IR4=KONTROLMATRIX(4,NUC) !MC of cascades - the seed for a) mixing of primaries b) "coin flip" of internal conversion
       !  write(*,*) 'starting NREAL with these seeds: ',NUC,IR1,IR2,IR3,IR4 !TODO delete after testing of reproducibility
 !
+       IFLAG=0   ! no Gaussian left pending from the previous realization on this thread
+       U=0.      ! (otherwise results depend on the OpenMP schedule when NREAL > number of threads)
        CALL LEVELSCH (IR1,NUC,IFLAG,NTOTAL,ITID,SPINC(1),U,LEVCON)
        write(*,*) 'levels generated for NREAL #',NUC
        IF (ISWLS.EQ.1) THEN   ! Writing generated levels if requested
@@ -312,15 +315,18 @@ real:: start, finish
               CALL WIDTHS_R(0,IPIN,SPIN,IBIN,ILIN,TOTCON,STCON,GACON,ISCON,TOTDIS,STDIS,GADIS,ISDIS,LEVCON,&
                             IRCON,IRCONc,IFLAG,U,IREGI,EIN,EFI)
               IF ((SNGL(TOTCON(0))+TOTDIS(0)).LE.0.) THEN
-                NDEAD=NDEAD+1
+                NDEAD=NDEAD+1          ! no E1/M1/E2 decay possible: cascade stops at this level
+                WIQQ(IEV,steps)=0.0    ! ELQQ,SPQQ,IPQQ,DMQQ,ICQQ of this step are already stored above
+                NR_STEPS(IEV)=STEPS
                 GO TO 5
               ENDIF
             ENDIF
-            if (iregi.eq.2) then 
+            if (iregi.eq.2) then
               if (denum(dekod(ilfi,isubsc(spfi),ipfi)).eq.0) then
-                NISOM=NISOM+1
-                !WRITE(*,*) 'so you declared isomeric state that does not decay'
-                GO TO 6
+                NISOM=NISOM+1          ! non-decaying (isomeric) level: cascade stops here
+                WIQQ(IEV,steps)=0.0    ! do not rewrite ICQQ here, IC_type was already reset to 0
+                NR_STEPS(IEV)=STEPS
+                GO TO 5
               endif
             endif
             WIQQ(IEV,steps)=SNGL(TOTCON(0))+TOTDIS(0)
@@ -328,7 +334,7 @@ real:: start, finish
             CALL ONESTEP(0,IPIN,SPIN,IBIN,ILIN,TOTCON,STCON,GACON,ISCON,TOTDIS,STDIS,GADIS,ISDIS,IPFI,SPFI,&
                 IBFI,ILFI,DMIX2,sign,IR3,IR4,LEVCON,sall,U,IFLAG,EIN,EFI,IREGI,IC_type,IRCON,IRCONc)
           ENDDO  !WHILE EFI
-   6      ELQQ(IEV,steps)=EFI
+          ELQQ(IEV,steps)=EFI
           SPQQ(IEV,steps)=SPFI
           IPQQ(IEV,steps)=IPFI
           WIQQ(IEV,steps)=0.0
