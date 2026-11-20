@@ -425,7 +425,7 @@ integer::                             IPAR
       IF (LDENP.EQ.0) THEN
         PARDEP=0.5
       ELSEIF (LDENP.GE.2) THEN
-        PAIRS=DENPA0+DENPA1/AMASS**DENPA2             !see PRC67, 015803  
+        PAIRS=DENPA0+DENPA1/AMASS**DENPA2             !see PRC67, 015803
       ELSEIF (LDENP.EQ.1) THEN                        !see PRC67, 015803
         IF (MOD(INT(AMASS+0.25),2).EQ.0) THEN
           IF (MOD(INT(ZNUM+0.25),2).EQ.0) THEN

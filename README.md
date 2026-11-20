@@ -30,7 +30,8 @@ it is available solely under the [LICENSE](LICENSE) in this repository.
 
 If you publish results obtained with this code, please cite:
 
-- F. Bečvář, Nucl. Instrum. Methods Phys. Res. A 417, 434 (1998)
+- F. Bečvář, Nucl. Instrum. Methods Phys. Res. A **417**, 434–449 (1998),
+  [doi:10.1016/S0168-9002(98)00787-6](https://doi.org/10.1016/S0168-9002(98)00787-6)
 - S. Valenta, M. Krtička, F. Bečvář, DICEBOX parallel version,
   https://github.com/valentastanislav/dicebox
 

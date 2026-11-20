@@ -106,7 +106,7 @@ prior written permission of the Authors. Requests should be sent to:
 Publications, presentations, theses, and other works that use results
 obtained with the Software or a Modified Version must cite:
   - F. Bečvář, Nucl. Instrum. Methods Phys. Res. A 417, 434 (1998),
-        DOI 10.1016/s0168-9002(98)00787-6;
+        DOI 10.1016/S0168-9002(98)00787-6;
   - S. Valenta, M. Krtička, DICEBOX parallel version,
         https://github.com/valentastanislav/dicebox;
 and must identify the version used (release tag or commit hash).
