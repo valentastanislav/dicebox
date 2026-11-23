@@ -6,6 +6,10 @@
 !TODO check about the models 48,49
 module spolecne
 use lokalni_fce
+! MAXDJP: largest |J_capture - J_final| of a user-supplied primary (IPRIM=1). Only the discrete
+! arrays STDIS, STDISa, GADIS carry this range; the continuum (STCON, GACON, ISCON) stays at
+! |dJ| <= 2 because the statistical model has no E3 or higher PSF.
+INTEGER,PARAMETER::                   MAXDJP = 10
 integer::                             nbin,LMODE,LDENP,LDSTAG,NLD,NGIGE,NLOWLOR,NGIGM,NGIGE2,NOPTE1,NOPTM1,NOPTE2
 integer::                             max_decays,numlev,NOPTDE
 
@@ -71,7 +75,7 @@ SUBROUTINE READ_INT(sall,STDISa,IFLAG,U,IR4)   !should be OK
 integer::                             IFLAG,IR4
 real::                                U
 real,dimension(:,:),allocatable::     sall
-real, dimension(0:2,0:20,-2:2,0:1)::  STDISa
+real, dimension(0:2,0:20,-MAXDJP:MAXDJP,0:1)::  STDISa
 INTEGER::                             I,J,K, spin_diff
 REAL::                                sal_tp
 !global despin,deparity,delev,denum,prim,errprim,alpha,ndis,endis,max_decays,sal,errsal
@@ -85,7 +89,7 @@ REAL::                                sal_tp
       ENDDO
       DO I=0,2
         DO J=0,20
-          DO spin_diff=-2,2
+          DO spin_diff=-MAXDJP,MAXDJP
             DO K=0,1
               STDISa(I,J,spin_diff,K)=0.0
             ENDDO
@@ -109,7 +113,7 @@ REAL::                                sal_tp
 !   PRIMARIES part; TODO introduce fluctuations according to errprim(I)
         DO J=1,ndis(ISUBSC(elowsp(I)),ilowip(I)) ! we go over all levels of the same spin and parity to find THE level
           spin_diff = NINT(elowsp(I)+.25)-NINT(SPINc(1)+.25)
-          IF ((LVL_ENERGY(I).EQ.endis(J,ISUBSC(elowsp(I)),ilowip(I))).AND.(abs(spin_diff).LE.2)) THEN
+          IF ((LVL_ENERGY(I).EQ.endis(J,ISUBSC(elowsp(I)),ilowip(I))).AND.(abs(spin_diff).LE.MAXDJP)) THEN
             ! write(*,*) 'in READ_INT ',I,J,spin_diff,ilowip(I),prim(I)
             STDISa(1,J,spin_diff,ilowip(I)) = &
             STDISa(1,J-1,spin_diff,ilowip(I)) + prim(I)*factnrm

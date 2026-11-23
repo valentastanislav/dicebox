@@ -206,6 +206,11 @@ REAL FUNCTION ALPH_TOT (EI,SPI,IPI,EF,SPF,IPF,DMISQ,NEN,ELEN,CONV)
 !     MAEL1 - the type  of the next-order contributing radiation
 !
       MAEL1=1-MAEL0
+!     The ICC tables stop at L = 5 (total, K) and L = 3 (IPF).  Higher L only occurs for
+!     user-supplied primaries at MeV energies, where conversion is negligible: use the highest
+!     tabulated L instead of reading past the table.
+      MUL0=MIN(MUL0,UBOUND(CONV,2))
+      MUL1=MIN(MUL1,UBOUND(CONV,2))
       EG=EI-EF
       CT0=AICC(EG,ELEN,CONV,MAEL0,MUL0,NEN)
       CT1=AICC(EG,ELEN,CONV,MAEL1,MUL1,NEN)

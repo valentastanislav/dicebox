@@ -334,6 +334,17 @@ REAL::                  enrgf,desp,dlt,alphak,alphaIPF,SPACRES,dummy,FSPAC,corrA
        ENDDO
        IF (NLINc.EQ.1) ityp(i,2)=0
       ENDDO !i over numlev
+!     User-supplied primaries with |dJ| > 2 are kept (IPRIM=1); they must fit in MAXDJP.
+      DO i=1,numlev
+        IF ((IPRIM.EQ.1).AND.(prim(i).GT.0.)) THEN
+          IF (ABS(isbspin(i,1)).GT.MAXDJP) THEN
+            WRITE(*,*) 'ERROR: primary to level',i,' has |dJ| =',ABS(isbspin(i,1)),' > MAXDJP =',MAXDJP
+            STOP 'Increase MAXDJP in fce_common.f90'
+          ELSEIF (ABS(isbspin(i,1)).GT.2) THEN
+            WRITE(*,*) 'NOTE: primary to level',i,' with |dJ| =',ABS(isbspin(i,1)),' > 2 is kept (IPRIM=1)'
+          ENDIF
+        ENDIF
+      ENDDO
 !
       DO ipfi=0,1
        DO j = 0,ISUBSC(max_spin)
@@ -662,8 +673,8 @@ double precision,dimension(0:2,-2:2,0:1)::     GACON
 double precision,dimension(:,:,:,:),allocatable::  STCON
 double precision,dimension(0:2)::     TOTCON
 integer,dimension(:,:,:,:),allocatable:: ISCON
-real, dimension(0:2,0:20,-2:2,0:1)::  STDIS
-real, dimension(0:2,-2:2,0:1)::       GADIS
+real, dimension(0:2,0:20,-MAXDJP:MAXDJP,0:1)::  STDIS
+real, dimension(0:2,-MAXDJP:MAXDJP,0:1):: GADIS
 real, dimension(0:2)::                TOTDIS
 real::                                U,SPIN,EIN,EFI
 integer::                             MODE,IPIN,IBIN,ILIN,IFLAG,IREGI
@@ -706,9 +717,9 @@ REAL,dimension(1:2)::                 SIMPL,GG
          ENDDO
         ENDIF
         GACON(MODE,IS,IP)=0.D+0
-        GADIS(MODE,IS,IP)=0.
        ENDDO !IP
       ENDDO !IS
+      GADIS(MODE,:,:)=0.
 !
       SP  = SPIN - INT(SPIN + .25)
       ISP = INT(SPIN + .25)
@@ -722,7 +733,7 @@ REAL,dimension(1:2)::                 SIMPL,GG
 !         not remove an explicitly supplied primary of another multipolarity
 !         (for example 2- -> 4+, which is M2).
           IF (IT.EQ.0) THEN
-            IF ((IPRIM.EQ.1).AND.(MODE.NE.0)) GOTO 22
+            IF ((IPRIM.EQ.1).AND.(MODE.NE.0).AND.(SPFI.GT.-0.25)) GOTO 22
             GOTO 1
           ENDIF
           IF (IT.EQ.2) THEN
@@ -914,6 +925,20 @@ REAL,dimension(1:2)::                 SIMPL,GG
     1     CONTINUE
         ENDDO !ISPFI
       ENDDO !IPFI
+!
+!     User-supplied primaries with |dJ| > 2 (IPRIM=1, MODE>0): discrete part only, the continuum
+!     keeps |dJ| <= 2 (no E3+ PSF).  The order of accumulation must match ONESTEP.
+      IF ((IPRIM.EQ.1).AND.(MODE.NE.0)) THEN
+        DO IPFI=0,1
+          DO ISBS=-MAXDJP,MAXDJP
+            IF (ABS(ISBS).LE.2) CYCLE
+            SPFI=SPIN+FLOAT(ISBS)
+            IF ((SPFI.LT.-0.25).OR.(SPFI.GT.49.75)) CYCLE
+            TOTDIS(MODE)=TOTDIS(MODE)+STDIS(MODE,NDIS(ISUBSC(SPFI),IPFI),ISBS,IPFI)
+            GADIS(MODE,ISBS,IPFI)=TOTDIS(MODE)
+          ENDDO
+        ENDDO
+      ENDIF
       RETURN
 END SUBROUTINE WIDTHS_R
 !***********************************************************************      
@@ -931,8 +956,8 @@ double precision,dimension(0:2,-2:2,0:1)::     GACON
 double precision,dimension(:,:,:,:),allocatable::  STCON
 double precision,dimension(0:2)::     TOTCON
 integer,dimension(:,:,:,:),allocatable:: ISCON
-real, dimension(0:2,0:20,-2:2,0:1)::  STDIS
-real, dimension(0:2,-2:2,0:1)::       GADIS
+real, dimension(0:2,0:20,-MAXDJP:MAXDJP,0:1)::  STDIS
+real, dimension(0:2,-MAXDJP:MAXDJP,0:1):: GADIS
 real, dimension(0:2)::                TOTDIS
 integer,dimension(:),allocatable::    IRCONc,IRCON
 integer,dimension(:,:,:),allocatable::LEVCON
@@ -1116,6 +1141,18 @@ integer,dimension(:,:,:,:),allocatable::ISDIS
         ENDIF
        ENDDO !SPF
       ENDDO !IPF
+!     user-supplied primaries with |dJ| > 2, in the same order as in WIDTHS_R
+      IF ((IPRIM.EQ.1).AND.(MODE.NE.0)) THEN
+        DO IPF=0,1
+         DO ISBS=-MAXDJP,MAXDJP
+          IF (ABS(ISBS).LE.2) CYCLE
+          SPF=SPIN+FLOAT(ISBS)
+          IF ((SPF.LT.-0.25).OR.(SPF.GT.49.75)) CYCLE
+          IT=0
+          IF (RN.LT.GADIS(MODE,ISBS,IPF)) GOTO 11
+         ENDDO
+        ENDDO
+      ENDIF
       GOTO 5
    11 SPFI=SPF
       IPFI=IPF

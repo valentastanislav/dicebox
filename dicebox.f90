@@ -24,8 +24,8 @@ double precision,dimension(0:2,-2:2,0:1)::     GACON
 double precision,dimension(:,:,:,:),allocatable::  STCON
 double precision,dimension(0:2)::     TOTCON
 integer,dimension(:,:,:,:),allocatable:: ISCON
-real, dimension(0:2,0:20,-2:2,0:1)::  STDIS,STDISa
-real, dimension(0:2,-2:2,0:1)::       GADIS
+real, dimension(0:2,0:20,-MAXDJP:MAXDJP,0:1)::  STDIS,STDISa
+real, dimension(0:2,-MAXDJP:MAXDJP,0:1):: GADIS
 real, dimension(0:2)::                TOTDIS
 
 real,dimension(:,:),allocatable::    ELQQ,SPQQ,DMQQ,WIQQ
@@ -233,12 +233,13 @@ real:: start, finish
           ENDIF
           DO ILINc=1,NLINc
             dummy=sngl(TOTCON(ILINc))/(1-TOTDIS(ILINc))
+            STDIS(ILINc,:,:,:)=0.   ! private array: the il = 0 entries and empty J-pi groups must be 0, not garbage
             DO IPFI=0,1
               SPIN=SPINC(ILINc)-INT(SPINC(ILINc)+.25)
               DO IS = 0, MAXJC
                SPFI = FLOAT(IS) + SPIN
                ipin=NINT(SPFI+.25)-NINT(SPINC(ILINc)+.25)
-               IF ((ipin.GE.-2).AND.(ipin.LE.2)) THEN
+               IF ((ipin.GE.-MAXDJP).AND.(ipin.LE.MAXDJP)) THEN
                 DO il=1,NDIS(ISUBSC(SPFI),IPFI)
                  STDIS(ILINc,il,ipin,IPFI)=STDISa(ILINc,il,ipin,IPFI)*dummy
                 ENDDO
